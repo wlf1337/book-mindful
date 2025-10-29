@@ -22,7 +22,7 @@ interface Book {
 }
 
 const Dashboard = () => {
-  const [currentlyReading, setCurrentlyReading] = useState<Book[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [stats, setStats] = useState({
     totalBooks: 0,
     booksCompleted: 0,
@@ -41,7 +41,8 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: books, error: booksError } = await supabase
+      // Fetch both reading and want_to_read books
+      const { data: readingBooks, error: readingError } = await supabase
         .from("user_books")
         .select(`
           id,
@@ -56,9 +57,17 @@ const Dashboard = () => {
           )
         `)
         .eq("user_id", user.id)
-        .eq("status", "reading");
+        .in("status", ["reading", "want_to_read"])
+        .order("status", { ascending: true }); // reading comes before want_to_read
 
-      if (booksError) throw booksError;
+      if (readingError) throw readingError;
+
+      // Sort so reading books appear first
+      const sortedBooks = (readingBooks || []).sort((a, b) => {
+        if (a.status === "reading" && b.status !== "reading") return -1;
+        if (a.status !== "reading" && b.status === "reading") return 1;
+        return 0;
+      });
 
       const { count: totalCount } = await supabase
         .from("user_books")
@@ -84,7 +93,7 @@ const Dashboard = () => {
 
       const streak = calculateStreak(sessions || []);
 
-      setCurrentlyReading(books || []);
+      setBooks(sortedBooks);
       setStats({
         totalBooks: totalCount || 0,
         booksCompleted: completedCount || 0,
@@ -174,11 +183,10 @@ const Dashboard = () => {
         </div>
 
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Currently Reading</h2>
-          {currentlyReading.length === 0 ? (
+          {books.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-sm sm:text-base">No books currently being read</p>
+              <p className="text-sm sm:text-base">No books in your library yet</p>
               <p className="text-xs sm:text-sm mt-2">Add a book to start tracking</p>
               <div className="mt-6">
                 <AddBookDialog onBookAdded={fetchDashboardData} />
@@ -186,7 +194,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              {currentlyReading.map((book) => (
+              {books.map((book) => (
                 <BookCard
                   key={book.id}
                   id={book.book_id}

@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { BookCard } from "@/components/BookCard";
 import { AddBookDialog } from "@/components/AddBookDialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 
 interface Book {
   id: string;
@@ -89,6 +90,16 @@ const Library = () => {
             pageCount={book.books.page_count || undefined}
           />
         ))}
+        <AddBookDialog onBookAdded={fetchBooks}>
+          <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 bg-muted/20">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center h-full min-h-[240px] sm:min-h-[280px]">
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <Plus className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">Add Book</p>
+              </div>
+            </CardContent>
+          </Card>
+        </AddBookDialog>
       </div>
     );
   };

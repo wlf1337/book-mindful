@@ -17,9 +17,9 @@ export const BookCard = ({ id, title, author, coverUrl, status, currentPage = 0,
   const progress = pageCount ? Math.round((currentPage / pageCount) * 100) : 0;
   
   const statusColors = {
-    reading: "bg-accent text-white",
+    reading: "bg-green-500 text-white",
     completed: "bg-primary text-primary-foreground",
-    want_to_read: "bg-secondary text-secondary-foreground",
+    want_to_read: "bg-muted text-muted-foreground",
   };
 
   const statusLabels = {
