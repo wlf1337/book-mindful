@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AddBookDialogProps {
   onBookAdded: () => void;
+  children?: React.ReactNode;
 }
 
-export const AddBookDialog = ({ onBookAdded }: AddBookDialogProps) => {
+export const AddBookDialog = ({ onBookAdded, children }: AddBookDialogProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isbn, setIsbn] = useState("");
@@ -148,10 +149,12 @@ export const AddBookDialog = ({ onBookAdded }: AddBookDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Book
-        </Button>
+        {children || (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Book
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { StatsCard } from "@/components/StatsCard";
 import { BookCard } from "@/components/BookCard";
+import { AddBookDialog } from "@/components/AddBookDialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Clock, Target, TrendingUp, Flame } from "lucide-react";
+import { BookOpen, Clock, Target, TrendingUp, Flame, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Book {
@@ -177,7 +179,10 @@ const Dashboard = () => {
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm sm:text-base">No books currently being read</p>
-              <p className="text-xs sm:text-sm mt-2">Add a book from your library to start tracking</p>
+              <p className="text-xs sm:text-sm mt-2">Add a book to start tracking</p>
+              <div className="mt-6">
+                <AddBookDialog onBookAdded={fetchDashboardData} />
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -193,6 +198,16 @@ const Dashboard = () => {
                   pageCount={book.books.page_count || undefined}
                 />
               ))}
+              <AddBookDialog onBookAdded={fetchDashboardData}>
+                <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 bg-muted/20">
+                  <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center h-full min-h-[240px] sm:min-h-[280px]">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <Plus className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Add Book</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </AddBookDialog>
             </div>
           )}
         </div>
