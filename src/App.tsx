@@ -11,6 +11,7 @@ import BookDetail from "./pages/BookDetail";
 import ReadingSession from "./pages/ReadingSession";
 import Goals from "./pages/Goals";
 import Notes from "./pages/Notes";
+import Notifications from "./pages/Notifications";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/read/:id" element={<ProtectedRoute><ReadingSession /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

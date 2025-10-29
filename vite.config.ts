@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
+      devOptions: {
+        enabled: true,
+        type: "module"
+      },
       manifest: {
         name: "PagePace - Reading Tracker",
         short_name: "PagePace",
@@ -62,7 +66,10 @@ export default defineConfig(({ mode }) => ({
               }
             }
           }
-        ]
+        ],
+        // Enable notifications
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ].filter(Boolean),
