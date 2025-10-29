@@ -353,7 +353,7 @@ const ReadingSession = () => {
               </div>
 
               <div className="flex justify-center gap-3 sm:gap-4">
-                {!sessionId ? (
+                {!session ? (
                   <Button size="lg" onClick={startSession} className="px-8 sm:px-12 h-12 sm:h-auto text-base shadow-sm">
                     <Play className="h-5 w-5 mr-2" />
                     Start Reading
@@ -409,14 +409,14 @@ const ReadingSession = () => {
                             <CardContent className="p-3">
                               <div className="flex justify-between items-start gap-2">
                                 <p className="text-sm flex-1">{note.content}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => deleteSessionNote(note.id)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSessionNote(note.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                               </div>
                             </CardContent>
                           </Card>

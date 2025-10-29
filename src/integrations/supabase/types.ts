@@ -234,6 +234,8 @@ export type Database = {
           ended_at: string | null
           id: string
           pages_read: number | null
+          paused_at: string | null
+          paused_duration_seconds: number | null
           start_page: number | null
           started_at: string
           user_id: string
@@ -246,6 +248,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           pages_read?: number | null
+          paused_at?: string | null
+          paused_duration_seconds?: number | null
           start_page?: number | null
           started_at?: string
           user_id: string
@@ -258,6 +262,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           pages_read?: number | null
+          paused_at?: string | null
+          paused_duration_seconds?: number | null
           start_page?: number | null
           started_at?: string
           user_id?: string
