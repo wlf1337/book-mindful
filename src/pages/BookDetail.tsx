@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Book, Clock, FileText, Play, Star, Trash2 } from "lucide-react";
@@ -131,6 +132,21 @@ const BookDetail = () => {
     }
   };
 
+  const deleteBook = async () => {
+    try {
+      const { error } = await supabase
+        .from("user_books")
+        .delete()
+        .eq("id", userBook.id);
+
+      if (error) throw error;
+      toast.success("Book removed from library");
+      navigate("/library");
+    } catch (error: any) {
+      toast.error("Failed to delete book");
+    }
+  };
+
   const startReading = () => {
     navigate(`/read/${id}`);
   };
@@ -212,6 +228,30 @@ const BookDetail = () => {
                   <Play className="h-4 w-4 mr-2" />
                   Start Reading Session
                 </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove from Library
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove this book?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the book from your library, including all your notes and reading sessions.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={deleteBook} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Remove Book
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </div>
