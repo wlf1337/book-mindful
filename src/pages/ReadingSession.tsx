@@ -439,12 +439,17 @@ const ReadingSession = () => {
                       <Square className="h-5 w-5 mr-2" />
                       Stop
                     </Button>
-                    <Button size="lg" variant="destructive" onClick={cancelSession} className="h-12 sm:h-auto shadow-sm">
-                      Cancel
-                    </Button>
                   </>
                 )}
               </div>
+
+              {session && (
+                <div className="flex justify-center mt-2">
+                  <Button size="sm" variant="ghost" onClick={cancelSession} className="text-muted-foreground">
+                    Cancel session
+                  </Button>
+                </div>
+              )}
 
               {session && (
                 <div className="space-y-4">
