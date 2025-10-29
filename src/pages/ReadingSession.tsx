@@ -176,9 +176,30 @@ const ReadingSession = () => {
                 <div className="text-6xl font-bold mb-4 font-mono text-primary">
                   {formatTime(elapsedSeconds)}
                 </div>
-                <p className="text-muted-foreground">
-                  Starting from page {startPage}
-                </p>
+                {!sessionId && (
+                  <div className="mb-4 max-w-xs mx-auto">
+                    <Label htmlFor="startPage" className="text-sm">Starting Page</Label>
+                    <Input
+                      id="startPage"
+                      type="number"
+                      value={startPage}
+                      onChange={(e) => setStartPage(parseInt(e.target.value) || 0)}
+                      min={0}
+                      max={book.page_count || undefined}
+                      className="mt-2 text-center text-lg font-semibold"
+                    />
+                    {book.page_count && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        of {book.page_count} pages
+                      </p>
+                    )}
+                  </div>
+                )}
+                {sessionId && (
+                  <p className="text-muted-foreground">
+                    Started from page {startPage}
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-center gap-4">
