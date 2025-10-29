@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          book_id: string
+          created_at: string
+          custom_instruction: string | null
+          generated_content: string
+          id: string
+          prompt_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          custom_instruction?: string | null
+          generated_content: string
+          id?: string
+          prompt_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          custom_instruction?: string | null
+          generated_content?: string
+          id?: string
+          prompt_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_prompts: {
         Row: {
           created_at: string

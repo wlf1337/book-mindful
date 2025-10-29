@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, StickyNote, Book, Sparkles, Loader2 } from "lucide-react";
+import { Search, StickyNote, Book, Sparkles, Loader2, History, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -19,6 +20,21 @@ interface Note {
   content: string;
   note_type: string;
   page_number: number | null;
+  created_at: string;
+  books: {
+    id: string;
+    title: string;
+    author: string | null;
+    cover_url: string | null;
+  };
+}
+
+interface AIInsight {
+  id: string;
+  book_id: string;
+  prompt_type: string;
+  custom_instruction: string | null;
+  generated_content: string;
   created_at: string;
   books: {
     id: string;
@@ -40,10 +56,13 @@ const Notes = () => {
   const [customInstruction, setCustomInstruction] = useState("");
   const [aiResult, setAiResult] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [savedInsights, setSavedInsights] = useState<AIInsight[]>([]);
+  const [currentInsightId, setCurrentInsightId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotes();
     fetchBooks();
+    fetchSavedInsights();
   }, []);
 
   useEffect(() => {
@@ -124,6 +143,37 @@ const Notes = () => {
     }
   };
 
+  const fetchSavedInsights = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("ai_insights")
+        .select(`
+          id,
+          book_id,
+          prompt_type,
+          custom_instruction,
+          generated_content,
+          created_at,
+          books (
+            id,
+            title,
+            author,
+            cover_url
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSavedInsights(data || []);
+    } catch (error: any) {
+      toast.error("Failed to load saved insights");
+    }
+  };
+
   const handleGenerateAI = async () => {
     if (!selectedBook) {
       toast.error("Please select a book");
@@ -137,6 +187,7 @@ const Notes = () => {
 
     setAiLoading(true);
     setAiResult("");
+    setCurrentInsightId(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('process-notes-ai', {
@@ -163,6 +214,61 @@ const Notes = () => {
     }
   };
 
+  const handleSaveInsight = async () => {
+    if (!selectedBook || !aiResult) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("ai_insights")
+        .insert({
+          user_id: user.id,
+          book_id: selectedBook,
+          prompt_type: promptType,
+          custom_instruction: promptType === 'custom' ? customInstruction : null,
+          generated_content: aiResult
+        });
+
+      if (error) throw error;
+
+      toast.success("Insight saved successfully!");
+      setAiResult("");
+      setCustomInstruction("");
+      setDialogOpen(false);
+      fetchSavedInsights();
+    } catch (error: any) {
+      toast.error("Failed to save insight");
+    }
+  };
+
+  const handleDeleteInsight = async (insightId: string) => {
+    try {
+      const { error } = await supabase
+        .from("ai_insights")
+        .delete()
+        .eq("id", insightId);
+
+      if (error) throw error;
+
+      toast.success("Insight deleted");
+      fetchSavedInsights();
+    } catch (error: any) {
+      toast.error("Failed to delete insight");
+    }
+  };
+
+  const getPromptTitle = (type: string) => {
+    const titles: Record<string, string> = {
+      summary: 'Summary',
+      takeaways: 'Key Takeaways',
+      action_plan: 'Action Plan',
+      custom: 'Custom'
+    };
+    return titles[type] || type;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -180,14 +286,14 @@ const Notes = () => {
       <main className="container mx-auto px-4 py-8 space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">All Notes</h1>
-            <p className="text-muted-foreground">Your reading notes and quotes from all books</p>
+            <h1 className="text-3xl font-bold mb-2">Notes & Insights</h1>
+            <p className="text-muted-foreground">Your reading notes, quotes, and AI-generated insights</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Sparkles className="h-4 w-4" />
-                AI Insights
+                Generate AI Insights
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -266,9 +372,24 @@ const Notes = () => {
                     <CardHeader>
                       <CardTitle>AI Generated Content</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                       <div className="prose prose-sm max-w-none whitespace-pre-wrap">
                         {aiResult}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveInsight} className="flex-1">
+                          Save Insight
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setAiResult("");
+                            setCustomInstruction("");
+                          }}
+                          className="flex-1"
+                        >
+                          Discard
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -278,27 +399,41 @@ const Notes = () => {
           </Dialog>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search notes by content or book..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <Tabs defaultValue="notes" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="notes">
+              <StickyNote className="h-4 w-4 mr-2" />
+              Notes
+            </TabsTrigger>
+            <TabsTrigger value="insights">
+              <History className="h-4 w-4 mr-2" />
+              Saved Insights
+            </TabsTrigger>
+          </TabsList>
 
-        {filteredNotes.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>{searchQuery ? "No notes found matching your search" : "No notes yet"}</p>
-            <p className="text-sm mt-2">
-              {!searchQuery && "Start adding notes while reading your books"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredNotes.map((note) => (
+          <TabsContent value="notes" className="space-y-4 mt-6">
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search notes by content or book..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {filteredNotes.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>{searchQuery ? "No notes found matching your search" : "No notes yet"}</p>
+                <p className="text-sm mt-2">
+                  {!searchQuery && "Start adding notes while reading your books"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredNotes.map((note) => (
               <Card key={note.id} className="shadow-book hover:shadow-reading transition-smooth">
                 <CardContent className="p-6">
                   <div className="flex gap-4">
@@ -347,10 +482,95 @@ const Notes = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="insights" className="space-y-4 mt-6">
+            {savedInsights.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No saved insights yet</p>
+                <p className="text-sm mt-2">
+                  Generate AI insights from your notes and save them here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {savedInsights.map((insight) => (
+                  <Card key={insight.id} className="shadow-book hover:shadow-reading transition-smooth">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex gap-4 flex-1">
+                            <Link to={`/book/${insight.books.id}`} className="flex-shrink-0">
+                              <div className="w-16 h-24 bg-muted rounded flex items-center justify-center overflow-hidden">
+                                {insight.books.cover_url ? (
+                                  <img
+                                    src={insight.books.cover_url}
+                                    alt={insight.books.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Book className="h-8 w-8 text-muted-foreground" />
+                                )}
+                              </div>
+                            </Link>
+                            
+                            <div className="flex-1 space-y-2">
+                              <div>
+                                <Link
+                                  to={`/book/${insight.books.id}`}
+                                  className="font-semibold hover:text-primary transition-colors"
+                                >
+                                  {insight.books.title}
+                                </Link>
+                                {insight.books.author && (
+                                  <p className="text-sm text-muted-foreground">{insight.books.author}</p>
+                                )}
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <Badge variant="default">
+                                  {getPromptTitle(insight.prompt_type)}
+                                </Badge>
+                              </div>
+
+                              {insight.custom_instruction && (
+                                <div className="text-sm text-muted-foreground italic">
+                                  "{insight.custom_instruction}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteInsight(insight.id)}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed">
+                          {insight.generated_content}
+                        </div>
+                        
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(insight.created_at), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
