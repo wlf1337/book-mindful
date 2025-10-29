@@ -1,13 +1,1 @@
 project_id = "vmfrjxodsgfjjigharxm"
-
-[functions.process-notes-ai]
-verify_jwt = true
-
-[functions.check-subscription]
-verify_jwt = true
-
-[functions.create-checkout]
-verify_jwt = true
-
-[functions.customer-portal]
-verify_jwt = true
