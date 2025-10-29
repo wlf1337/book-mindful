@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,12 +18,101 @@ export const AddBookDialog = ({ onBookAdded, children }: AddBookDialogProps) => 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isbn, setIsbn] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [manualBook, setManualBook] = useState({
     title: "",
     author: "",
     pageCount: "",
     coverUrl: "",
   });
+
+  const searchByTitle = async () => {
+    if (!searchQuery.trim()) {
+      toast.error("Please enter a book title or author");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=5`
+      );
+      
+      if (!response.ok) {
+        toast.error("Search failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.docs || data.docs.length === 0) {
+        toast.error("No books found. Try different keywords.");
+        setSearchResults([]);
+        setLoading(false);
+        return;
+      }
+
+      setSearchResults(data.docs);
+    } catch (error: any) {
+      toast.error("Search failed. Please try again.");
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addBookFromSearch = async (book: any) => {
+    setLoading(true);
+    try {
+      const coverUrl = book.cover_i
+        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+        : null;
+
+      const { data: bookData, error: bookError } = await supabase
+        .from("books")
+        .insert({
+          isbn: book.isbn?.[0] || null,
+          title: book.title,
+          author: book.author_name?.[0] || null,
+          cover_url: coverUrl,
+          page_count: book.number_of_pages_median || null,
+          publisher: book.publisher?.[0] || null,
+          published_date: book.first_publish_year?.toString() || null,
+          manual_entry: false,
+        })
+        .select()
+        .single();
+
+      if (bookError) throw bookError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error: userBookError } = await supabase
+        .from("user_books")
+        .insert({
+          user_id: user.id,
+          book_id: bookData.id,
+          status: "want_to_read",
+        });
+
+      if (userBookError && !userBookError.message.includes("duplicate")) {
+        throw userBookError;
+      }
+
+      toast.success("Book added to your library!");
+      setOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      onBookAdded();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add book");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const searchByISBN = async () => {
     if (!isbn.trim()) {
@@ -163,11 +253,54 @@ export const AddBookDialog = ({ onBookAdded, children }: AddBookDialogProps) => 
             Search by ISBN or add manually
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="isbn" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="isbn">ISBN Search</TabsTrigger>
-            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+        <Tabs defaultValue="search" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="search">Search</TabsTrigger>
+            <TabsTrigger value="isbn">ISBN</TabsTrigger>
+            <TabsTrigger value="manual">Manual</TabsTrigger>
           </TabsList>
+          <TabsContent value="search" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Book Title or Author</Label>
+              <Input
+                id="search"
+                placeholder="Enter book title or author name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchByTitle()}
+              />
+            </div>
+            <Button onClick={searchByTitle} disabled={loading} className="w-full">
+              <Search className="h-4 w-4 mr-2" />
+              {loading ? "Searching..." : "Search Books"}
+            </Button>
+            {searchResults.length > 0 && (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {searchResults.map((book, index) => (
+                  <Card key={index} className="cursor-pointer hover:bg-accent" onClick={() => addBookFromSearch(book)}>
+                    <CardContent className="p-3 flex gap-3">
+                      {book.cover_i && (
+                        <img
+                          src={`https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg`}
+                          alt={book.title}
+                          className="w-12 h-16 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{book.title}</p>
+                        {book.author_name && (
+                          <p className="text-xs text-muted-foreground truncate">{book.author_name[0]}</p>
+                        )}
+                        {book.first_publish_year && (
+                          <p className="text-xs text-muted-foreground">{book.first_publish_year}</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
           <TabsContent value="isbn" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="isbn">ISBN</Label>
