@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/hooks/useNotifications";
 import { notificationTemplates } from "@/lib/notifications";
@@ -207,23 +208,35 @@ const Notifications = () => {
                   />
                 </div>
                 {settings.dailyReminder && (
-                  <div className="space-y-2">
-                    <Label htmlFor="reminder-time">Reminder time</Label>
-                    <Select 
-                      value={settings.reminderTime} 
-                      onValueChange={(value) => saveSettings({ ...settings, reminderTime: value })}
-                    >
-                      <SelectTrigger id="reminder-time">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="08:00">8:00 AM</SelectItem>
-                        <SelectItem value="12:00">12:00 PM</SelectItem>
-                        <SelectItem value="18:00">6:00 PM</SelectItem>
-                        <SelectItem value="20:00">8:00 PM</SelectItem>
-                        <SelectItem value="21:00">9:00 PM</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-time">Quick select</Label>
+                      <Select 
+                        value={settings.reminderTime} 
+                        onValueChange={(value) => saveSettings({ ...settings, reminderTime: value })}
+                      >
+                        <SelectTrigger id="reminder-time">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="08:00">8:00 AM</SelectItem>
+                          <SelectItem value="12:00">12:00 PM</SelectItem>
+                          <SelectItem value="18:00">6:00 PM</SelectItem>
+                          <SelectItem value="20:00">8:00 PM</SelectItem>
+                          <SelectItem value="21:00">9:00 PM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-time">Or set custom time</Label>
+                      <Input
+                        id="custom-time"
+                        type="time"
+                        value={settings.reminderTime}
+                        onChange={(e) => saveSettings({ ...settings, reminderTime: e.target.value })}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                 )}
               </CardContent>
