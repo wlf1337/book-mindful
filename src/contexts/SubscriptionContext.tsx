@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
@@ -21,6 +21,8 @@ export const useSubscription = () => {
 };
 
 const PREMIUM_PRODUCT_ID = 'prod_TKDAJwSj3E38al';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes instead of 1
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [subscribed, setSubscribed] = useState(false);
@@ -28,8 +30,24 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  
+  const isCheckingRef = useRef(false);
+  const lastCheckTimeRef = useRef<number>(0);
 
   const checkSubscription = async () => {
+    // Prevent concurrent calls
+    if (isCheckingRef.current) {
+      return;
+    }
+
+    // Use cache if recent check
+    const now = Date.now();
+    if (now - lastCheckTimeRef.current < CACHE_DURATION) {
+      return;
+    }
+
+    isCheckingRef.current = true;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -47,58 +65,75 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setSubscribed(data.subscribed || false);
       setProductId(data.product_id || null);
       setSubscriptionEnd(data.subscription_end || null);
-    } catch (error) {
+      lastCheckTimeRef.current = now;
+    } catch (error: any) {
       console.error('Error checking subscription:', error);
-      setSubscribed(false);
-      setProductId(null);
-      setSubscriptionEnd(null);
+      
+      // Don't clear subscription on rate limit - keep cached value
+      if (!error.message?.includes('rate limit')) {
+        setSubscribed(false);
+        setProductId(null);
+        setSubscriptionEnd(null);
+      }
     } finally {
       setLoading(false);
+      isCheckingRef.current = false;
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+    let checkInterval: NodeJS.Timeout | null = null;
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+        
         setUser(session?.user ?? null);
         
-        // Defer subscription check
         if (session?.user) {
-          setTimeout(() => {
-            checkSubscription();
-          }, 0);
+          // Only check on sign in, not on every auth change
+          if (event === 'SIGNED_IN') {
+            await checkSubscription();
+          }
         } else {
           setSubscribed(false);
           setProductId(null);
           setSubscriptionEnd(null);
           setLoading(false);
+          lastCheckTimeRef.current = 0;
         }
       }
     );
 
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Initial check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setUser(session?.user ?? null);
       if (session?.user) {
-        checkSubscription();
+        await checkSubscription();
+        
+        // Set up periodic check only after initial check
+        checkInterval = setInterval(() => {
+          if (mounted && session?.user) {
+            checkSubscription();
+          }
+        }, CHECK_INTERVAL);
       } else {
         setLoading(false);
       }
     });
 
-    // Set up periodic check every minute
-    const interval = setInterval(() => {
-      if (user) {
-        checkSubscription();
-      }
-    }, 60000);
-
     return () => {
+      mounted = false;
       subscription.unsubscribe();
-      clearInterval(interval);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
     };
-  }, [user]);
+  }, []); // Empty dependency array - only run once
 
   return (
     <SubscriptionContext.Provider
