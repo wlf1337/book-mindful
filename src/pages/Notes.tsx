@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, StickyNote, Book, Sparkles, Loader2, History, Trash2 } from "lucide-react";
+import { Search, StickyNote, Book, Sparkles, Loader2, History, Trash2, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -44,9 +45,17 @@ interface AIInsight {
   };
 }
 
+interface BookWithNotes {
+  bookId: string;
+  bookTitle: string;
+  bookAuthor: string | null;
+  bookCover: string | null;
+  notes: Note[];
+}
+
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
+  const [groupedNotes, setGroupedNotes] = useState<BookWithNotes[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
@@ -73,11 +82,34 @@ const Notes = () => {
           note.books.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           note.books.author?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredNotes(filtered);
+      groupNotesByBook(filtered);
     } else {
-      setFilteredNotes(notes);
+      groupNotesByBook(notes);
     }
   }, [searchQuery, notes]);
+
+  const groupNotesByBook = (notesToGroup: Note[]) => {
+    const grouped = notesToGroup.reduce((acc, note) => {
+      const bookId = note.books.id;
+      const existing = acc.find(b => b.bookId === bookId);
+      
+      if (existing) {
+        existing.notes.push(note);
+      } else {
+        acc.push({
+          bookId,
+          bookTitle: note.books.title,
+          bookAuthor: note.books.author,
+          bookCover: note.books.cover_url,
+          notes: [note]
+        });
+      }
+      
+      return acc;
+    }, [] as BookWithNotes[]);
+
+    setGroupedNotes(grouped);
+  };
 
   const fetchNotes = async () => {
     try {
@@ -104,11 +136,26 @@ const Notes = () => {
 
       if (error) throw error;
       setNotes(data || []);
-      setFilteredNotes(data || []);
     } catch (error: any) {
       toast.error("Failed to load notes");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId);
+
+      if (error) throw error;
+
+      toast.success("Note deleted");
+      fetchNotes();
+    } catch (error: any) {
+      toast.error("Failed to delete note");
     }
   };
 
@@ -423,7 +470,7 @@ const Notes = () => {
               />
             </div>
 
-            {filteredNotes.length === 0 ? (
+            {groupedNotes.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>{searchQuery ? "No notes found matching your search" : "No notes yet"}</p>
@@ -432,59 +479,76 @@ const Notes = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredNotes.map((note) => (
-              <Card key={note.id} className="shadow-book hover:shadow-reading transition-smooth">
-                <CardContent className="p-6">
-                  <div className="flex gap-4">
-                    <Link to={`/book/${note.books.id}`} className="flex-shrink-0">
-                      <div className="w-16 h-24 bg-muted rounded flex items-center justify-center overflow-hidden">
-                        {note.books.cover_url ? (
-                          <img
-                            src={note.books.cover_url}
-                            alt={note.books.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Book className="h-8 w-8 text-muted-foreground" />
-                        )}
-                      </div>
-                    </Link>
-                    
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <Link
-                            to={`/book/${note.books.id}`}
-                            className="font-semibold hover:text-primary transition-colors"
-                          >
-                            {note.books.title}
-                          </Link>
-                          {note.books.author && (
-                            <p className="text-sm text-muted-foreground">{note.books.author}</p>
+              <Accordion type="multiple" className="space-y-4">
+                {groupedNotes.map((bookGroup) => (
+                  <AccordionItem 
+                    key={bookGroup.bookId} 
+                    value={bookGroup.bookId}
+                    className="border rounded-lg shadow-book"
+                  >
+                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                      <div className="flex items-center gap-4 flex-1 text-left">
+                        <Link to={`/book/${bookGroup.bookId}`} className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div className="w-12 h-16 bg-muted rounded flex items-center justify-center overflow-hidden">
+                            {bookGroup.bookCover ? (
+                              <img
+                                src={bookGroup.bookCover}
+                                alt={bookGroup.bookTitle}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Book className="h-6 w-6 text-muted-foreground" />
+                            )}
+                          </div>
+                        </Link>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{bookGroup.bookTitle}</h3>
+                          {bookGroup.bookAuthor && (
+                            <p className="text-sm text-muted-foreground">{bookGroup.bookAuthor}</p>
                           )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Badge variant={note.note_type === "quote" ? "default" : "secondary"}>
-                            {note.note_type === "quote" ? "Quote" : "Note"}
-                          </Badge>
-                          {note.page_number && (
-                            <Badge variant="outline">Page {note.page_number}</Badge>
-                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {bookGroup.notes.length} {bookGroup.notes.length === 1 ? 'note' : 'notes'}
+                          </p>
                         </div>
                       </div>
-                      
-                      <p className="text-sm leading-relaxed">{note.content}</p>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-                  </Card>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-4">
+                      <div className="space-y-3 pt-2">
+                        {bookGroup.notes.map((note) => (
+                          <Card key={note.id} className="bg-muted/30">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant={note.note_type === "quote" ? "default" : "secondary"} className="text-xs">
+                                      {note.note_type === "quote" ? "Quote" : "Note"}
+                                    </Badge>
+                                    {note.page_number && (
+                                      <Badge variant="outline" className="text-xs">Page {note.page_number}</Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm leading-relaxed">{note.content}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}
+                                  </p>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteNote(note.id)}
+                                  className="flex-shrink-0 h-8 w-8"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 ))}
-              </div>
+              </Accordion>
             )}
           </TabsContent>
 
