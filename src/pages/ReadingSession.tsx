@@ -20,6 +20,9 @@ const ReadingSession = () => {
   const [isReading, setIsReading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [totalPausedTime, setTotalPausedTime] = useState(0);
+  const [pauseStartTime, setPauseStartTime] = useState<number | null>(null);
   const [startPage, setStartPage] = useState<number>(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [endPage, setEndPage] = useState<string>("");
@@ -32,13 +35,34 @@ const ReadingSession = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isReading) {
-      interval = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
+    if (isReading && sessionStartTime) {
+      // Update timer based on actual elapsed time, not intervals
+      const updateTimer = () => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - sessionStartTime - totalPausedTime) / 1000);
+        setElapsedSeconds(elapsed);
+      };
+      
+      updateTimer(); // Update immediately
+      interval = setInterval(updateTimer, 1000);
     }
     return () => clearInterval(interval);
-  }, [isReading]);
+  }, [isReading, sessionStartTime, totalPausedTime]);
+
+  // Handle visibility changes to recalculate time when app regains focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isReading && sessionStartTime) {
+        // Recalculate elapsed time when app becomes visible
+        const now = Date.now();
+        const elapsed = Math.floor((now - sessionStartTime - totalPausedTime) / 1000);
+        setElapsedSeconds(elapsed);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isReading, sessionStartTime, totalPausedTime]);
 
   const fetchBookData = async () => {
     try {
@@ -84,6 +108,9 @@ const ReadingSession = () => {
       if (error) throw error;
 
       setSessionId(data.id);
+      setSessionStartTime(Date.now());
+      setTotalPausedTime(0);
+      setElapsedSeconds(0);
       setIsReading(true);
       setSessionNotes([]);
       toast.success("Reading session started");
@@ -94,9 +121,15 @@ const ReadingSession = () => {
 
   const pauseSession = () => {
     setIsReading(false);
+    setPauseStartTime(Date.now());
   };
 
   const resumeSession = () => {
+    if (pauseStartTime) {
+      const pauseDuration = Date.now() - pauseStartTime;
+      setTotalPausedTime(prev => prev + pauseDuration);
+      setPauseStartTime(null);
+    }
     setIsReading(true);
   };
 
