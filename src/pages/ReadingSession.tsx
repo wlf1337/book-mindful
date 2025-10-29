@@ -30,8 +30,46 @@ const ReadingSession = () => {
   const [sessionNotes, setSessionNotes] = useState<any[]>([]);
 
   useEffect(() => {
-    if (id) fetchBookData();
+    if (id) {
+      fetchBookData();
+      // Restore session state from localStorage if available
+      const savedState = localStorage.getItem(`reading-session-${id}`);
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState);
+          if (state.sessionId && state.sessionStartTime) {
+            setSessionId(state.sessionId);
+            setSessionStartTime(state.sessionStartTime);
+            setTotalPausedTime(state.totalPausedTime || 0);
+            setIsReading(state.isReading || false);
+            if (state.pauseStartTime) {
+              setPauseStartTime(state.pauseStartTime);
+            }
+            // Recalculate elapsed time
+            const now = Date.now();
+            const elapsed = Math.floor((now - state.sessionStartTime - (state.totalPausedTime || 0)) / 1000);
+            setElapsedSeconds(elapsed);
+          }
+        } catch (e) {
+          console.error('Failed to restore session state', e);
+        }
+      }
+    }
   }, [id]);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionId && sessionStartTime && id) {
+      const state = {
+        sessionId,
+        sessionStartTime,
+        totalPausedTime,
+        isReading,
+        pauseStartTime,
+      };
+      localStorage.setItem(`reading-session-${id}`, JSON.stringify(state));
+    }
+  }, [sessionId, sessionStartTime, totalPausedTime, isReading, pauseStartTime, id]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -228,6 +266,9 @@ const ReadingSession = () => {
 
       if (userBookError) throw userBookError;
 
+      // Clear saved state from localStorage
+      localStorage.removeItem(`reading-session-${id}`);
+      
       toast.success("Reading session saved!");
       navigate(`/book/${id}`);
     } catch (error: any) {
