@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Book, Clock, FileText, Play, Star, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { noteSchema } from "@/lib/validation";
 
 const BookDetail = () => {
   const { id } = useParams();
@@ -93,7 +94,13 @@ const BookDetail = () => {
   };
 
   const addNote = async () => {
-    if (!newNote.trim()) return;
+    // Validate note content
+    const validation = noteSchema.safeParse({ content: newNote });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -104,7 +111,7 @@ const BookDetail = () => {
         .insert({
           user_id: user.id,
           book_id: id,
-          content: newNote,
+          content: validation.data.content,
           note_type: "note",
         });
 

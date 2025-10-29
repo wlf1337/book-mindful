@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, Save, Key } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { aiPromptSchema } from "@/lib/validation";
 
 interface AIPrompt {
   id: string;
@@ -80,10 +81,21 @@ const Admin = () => {
   };
 
   const handleSavePrompt = async (promptId: string) => {
+    // Validate prompt content
+    const validation = aiPromptSchema.safeParse({
+      systemPrompt: editingPrompts[promptId],
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('ai_prompts')
-        .update({ system_prompt: editingPrompts[promptId] })
+        .update({ system_prompt: validation.data.systemPrompt })
         .eq('id', promptId);
 
       if (error) throw error;

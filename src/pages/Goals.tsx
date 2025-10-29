@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Target, Clock, BookOpen } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay } from "date-fns";
+import { goalSchema } from "@/lib/validation";
 
 const Goals = () => {
   const [goals, setGoals] = useState<any[]>([]);
@@ -83,8 +84,15 @@ const Goals = () => {
   };
 
   const addGoal = async () => {
-    if (!newGoal.value || parseInt(newGoal.value) <= 0) {
-      toast.error("Please enter a valid goal value");
+    // Validate goal input
+    const validation = goalSchema.safeParse({
+      goalType: newGoal.type,
+      targetValue: parseInt(newGoal.value),
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
@@ -96,8 +104,8 @@ const Goals = () => {
         .from("reading_goals")
         .upsert({
           user_id: user.id,
-          goal_type: newGoal.type as "daily_minutes" | "weekly_minutes" | "books_per_month" | "books_per_year",
-          target_value: parseInt(newGoal.value),
+          goal_type: validation.data.goalType,
+          target_value: validation.data.targetValue,
         });
 
       if (error) throw error;

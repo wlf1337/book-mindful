@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pause, Play, Square, Trash2 } from "lucide-react";
+import { noteSchema, pageNumberSchema } from "@/lib/validation";
 
 const ReadingSession = () => {
   const { id } = useParams();
@@ -104,8 +105,11 @@ const ReadingSession = () => {
   };
 
   const addNote = async () => {
-    if (!currentNote.trim()) {
-      toast.error("Please enter a note");
+    // Validate note content
+    const validation = noteSchema.safeParse({ content: currentNote });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
@@ -118,7 +122,7 @@ const ReadingSession = () => {
         .insert({
           user_id: user.id,
           book_id: id,
-          content: currentNote,
+          content: validation.data.content,
           note_type: "note",
         })
         .select()
@@ -153,8 +157,16 @@ const ReadingSession = () => {
   const finishSession = async () => {
     try {
       const endPageNum = parseInt(endPage);
-      if (isNaN(endPageNum) || endPageNum < startPage) {
-        toast.error("Please enter a valid page number");
+      
+      // Validate end page number
+      const validation = pageNumberSchema.safeParse({ page: endPageNum });
+      if (!validation.success) {
+        toast.error("Invalid page number");
+        return;
+      }
+      
+      if (endPageNum < startPage) {
+        toast.error("End page must be greater than or equal to start page");
         return;
       }
 

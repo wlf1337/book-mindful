@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { manualBookSchema, isbnSchema } from "@/lib/validation";
 
 interface AddBookDialogProps {
   onBookAdded: () => void;
@@ -120,6 +121,13 @@ export const AddBookDialog = ({ onBookAdded, children }: AddBookDialogProps) => 
       return;
     }
 
+    // Validate ISBN format
+    const isbnValidation = isbnSchema.safeParse(isbn.trim());
+    if (!isbnValidation.success) {
+      toast.error("Invalid ISBN format. Please check and try again.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
@@ -191,20 +199,30 @@ export const AddBookDialog = ({ onBookAdded, children }: AddBookDialogProps) => 
   };
 
   const addManualBook = async () => {
-    if (!manualBook.title.trim()) {
-      toast.error("Please enter a book title");
+    // Validate inputs
+    const validation = manualBookSchema.safeParse({
+      title: manualBook.title,
+      author: manualBook.author,
+      pageCount: manualBook.pageCount ? parseInt(manualBook.pageCount) : undefined,
+      coverUrl: manualBook.coverUrl,
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
     setLoading(true);
     try {
+      const validatedData = validation.data;
       const { data: bookData, error: bookError } = await supabase
         .from("books")
         .insert({
-          title: manualBook.title,
-          author: manualBook.author || null,
-          page_count: manualBook.pageCount ? parseInt(manualBook.pageCount) : null,
-          cover_url: manualBook.coverUrl || null,
+          title: validatedData.title,
+          author: validatedData.author || null,
+          page_count: validatedData.pageCount || null,
+          cover_url: validatedData.coverUrl || null,
           manual_entry: true,
         })
         .select()
