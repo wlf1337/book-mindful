@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ const ReadingSession = () => {
   const [startPage, setStartPage] = useState<number>(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [endPage, setEndPage] = useState<string>("");
+  const [sessionNote, setSessionNote] = useState<string>("");
 
   useEffect(() => {
     if (id) fetchBookData();
@@ -132,6 +134,21 @@ const ReadingSession = () => {
 
       if (userBookError) throw userBookError;
 
+      // Save session note if there is one
+      if (sessionNote.trim()) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("notes")
+            .insert({
+              user_id: user.id,
+              book_id: id,
+              content: sessionNote,
+              note_type: "note",
+            });
+        }
+      }
+
       toast.success("Reading session saved!");
       navigate(`/book/${id}`);
     } catch (error: any) {
@@ -228,6 +245,23 @@ const ReadingSession = () => {
                   </>
                 )}
               </div>
+
+              {sessionId && (
+                <div className="space-y-2 max-w-2xl mx-auto">
+                  <Label htmlFor="sessionNote" className="text-sm">Notes & Thoughts</Label>
+                  <Textarea
+                    id="sessionNote"
+                    placeholder="Jot down your thoughts, quotes, or reflections while reading..."
+                    value={sessionNote}
+                    onChange={(e) => setSessionNote(e.target.value)}
+                    rows={6}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This note will be saved when you end your session
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
