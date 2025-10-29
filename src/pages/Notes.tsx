@@ -14,7 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Search, StickyNote, Book, Sparkles, Loader2, History, Trash2, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 interface Note {
   id: string;
@@ -67,6 +69,22 @@ const Notes = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedInsights, setSavedInsights] = useState<AIInsight[]>([]);
   const [currentInsightId, setCurrentInsightId] = useState<string | null>(null);
+  const { subscribed, loading: subLoading, checkSubscription } = useSubscription();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    
+    if (success) {
+      toast.success("Welcome to Premium! Checking subscription status...");
+      checkSubscription();
+      setSearchParams({});
+    } else if (canceled) {
+      toast.info("Checkout canceled");
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, checkSubscription]);
 
   useEffect(() => {
     fetchNotes();
@@ -222,6 +240,11 @@ const Notes = () => {
   };
 
   const handleGenerateAI = async () => {
+    if (!subscribed) {
+      toast.error("Premium subscription required");
+      return;
+    }
+
     if (!selectedBook) {
       toast.error("Please select a book");
       return;
@@ -352,69 +375,75 @@ const Notes = () => {
               </DialogHeader>
 
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="book-select">Select Book</Label>
-                  <Select value={selectedBook} onValueChange={setSelectedBook}>
-                    <SelectTrigger id="book-select">
-                      <SelectValue placeholder="Choose a book" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {books.map(book => (
-                        <SelectItem key={book.id} value={book.id}>
-                          {book.title} {book.author && `by ${book.author}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!subscribed ? (
+                  <UpgradePrompt />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="book-select">Select Book</Label>
+                      <Select value={selectedBook} onValueChange={setSelectedBook}>
+                        <SelectTrigger id="book-select">
+                          <SelectValue placeholder="Choose a book" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {books.map(book => (
+                            <SelectItem key={book.id} value={book.id}>
+                              {book.title} {book.author && `by ${book.author}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="prompt-type">Output Type</Label>
-                  <Select value={promptType} onValueChange={setPromptType}>
-                    <SelectTrigger id="prompt-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="summary">Personalized Summary</SelectItem>
-                      <SelectItem value="takeaways">Key Takeaways</SelectItem>
-                      <SelectItem value="action_plan">Action Plan</SelectItem>
-                      <SelectItem value="custom">Custom Instructions</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="prompt-type">Output Type</Label>
+                      <Select value={promptType} onValueChange={setPromptType}>
+                        <SelectTrigger id="prompt-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="summary">Personalized Summary</SelectItem>
+                          <SelectItem value="takeaways">Key Takeaways</SelectItem>
+                          <SelectItem value="action_plan">Action Plan</SelectItem>
+                          <SelectItem value="custom">Custom Instructions</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                {promptType === 'custom' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="custom-instruction">Your Instructions</Label>
-                    <Textarea
-                      id="custom-instruction"
-                      value={customInstruction}
-                      onChange={(e) => setCustomInstruction(e.target.value)}
-                      placeholder="Tell the AI what you want to know about this book..."
-                      rows={4}
-                    />
-                  </div>
+                    {promptType === 'custom' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-instruction">Your Instructions</Label>
+                        <Textarea
+                          id="custom-instruction"
+                          value={customInstruction}
+                          onChange={(e) => setCustomInstruction(e.target.value)}
+                          placeholder="Tell the AI what you want to know about this book..."
+                          rows={4}
+                        />
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={handleGenerateAI} 
+                      disabled={aiLoading || !selectedBook}
+                      className="w-full"
+                    >
+                      {aiLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
 
-                <Button 
-                  onClick={handleGenerateAI} 
-                  disabled={aiLoading || !selectedBook}
-                  className="w-full"
-                >
-                  {aiLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-
-                {aiResult && (
+                {aiResult && subscribed && (
                   <Card>
                     <CardHeader>
                       <CardTitle>AI Generated Content</CardTitle>
