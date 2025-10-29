@@ -1,13 +1,37 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Home, Library, Target, StickyNote, LogOut } from "lucide-react";
+import { BookOpen, Home, Library, Target, StickyNote, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+
+      setIsAdmin(!!roles);
+    } catch (error) {
+      // User is not admin
+    }
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -54,6 +78,19 @@ export const Navbar = () => {
                 </Button>
               );
             })}
+            {isAdmin && (
+              <Button
+                variant={location.pathname === "/admin" ? "secondary" : "ghost"}
+                size="sm"
+                asChild
+                className="transition-smooth h-9 px-2 sm:px-3"
+              >
+                <Link to="/admin">
+                  <Shield className="h-4 w-4" />
+                  <span className="ml-1 hidden sm:inline text-xs">Admin</span>
+                </Link>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

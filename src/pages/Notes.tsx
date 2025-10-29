@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, StickyNote, Book } from "lucide-react";
+import { Search, StickyNote, Book, Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -28,9 +33,17 @@ const Notes = () => {
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<string>("");
+  const [books, setBooks] = useState<Array<{ id: string; title: string; author: string | null }>>([]);
+  const [promptType, setPromptType] = useState<string>("summary");
+  const [customInstruction, setCustomInstruction] = useState("");
+  const [aiResult, setAiResult] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchNotes();
+    fetchBooks();
   }, []);
 
   useEffect(() => {
@@ -80,6 +93,76 @@ const Notes = () => {
     }
   };
 
+  const fetchBooks = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_books")
+        .select(`
+          book_id,
+          books (
+            id,
+            title,
+            author
+          )
+        `)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      
+      const bookList = data?.map(ub => ({
+        id: ub.books.id,
+        title: ub.books.title,
+        author: ub.books.author
+      })) || [];
+      
+      setBooks(bookList);
+    } catch (error: any) {
+      toast.error("Failed to load books");
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!selectedBook) {
+      toast.error("Please select a book");
+      return;
+    }
+
+    if (promptType === 'custom' && !customInstruction.trim()) {
+      toast.error("Please provide custom instructions");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiResult("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('process-notes-ai', {
+        body: {
+          bookId: selectedBook,
+          promptType,
+          customInstruction: promptType === 'custom' ? customInstruction : undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.content) {
+        setAiResult(data.content);
+        toast.success("AI content generated successfully!");
+      } else {
+        throw new Error("No content generated");
+      }
+    } catch (error: any) {
+      console.error('AI generation error:', error);
+      toast.error(error.message || "Failed to generate AI content");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -95,9 +178,104 @@ const Notes = () => {
     <div className="min-h-screen gradient-warm">
       <Navbar />
       <main className="container mx-auto px-4 py-8 space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">All Notes</h1>
-          <p className="text-muted-foreground">Your reading notes and quotes from all books</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">All Notes</h1>
+            <p className="text-muted-foreground">Your reading notes and quotes from all books</p>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Insights
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Generate AI Insights</DialogTitle>
+                <DialogDescription>
+                  Use AI to create personalized summaries, key takeaways, or action plans based on your notes
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="book-select">Select Book</Label>
+                  <Select value={selectedBook} onValueChange={setSelectedBook}>
+                    <SelectTrigger id="book-select">
+                      <SelectValue placeholder="Choose a book" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {books.map(book => (
+                        <SelectItem key={book.id} value={book.id}>
+                          {book.title} {book.author && `by ${book.author}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="prompt-type">Output Type</Label>
+                  <Select value={promptType} onValueChange={setPromptType}>
+                    <SelectTrigger id="prompt-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="summary">Personalized Summary</SelectItem>
+                      <SelectItem value="takeaways">Key Takeaways</SelectItem>
+                      <SelectItem value="action_plan">Action Plan</SelectItem>
+                      <SelectItem value="custom">Custom Instructions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {promptType === 'custom' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="custom-instruction">Your Instructions</Label>
+                    <Textarea
+                      id="custom-instruction"
+                      value={customInstruction}
+                      onChange={(e) => setCustomInstruction(e.target.value)}
+                      placeholder="Tell the AI what you want to know about this book..."
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleGenerateAI} 
+                  disabled={aiLoading || !selectedBook}
+                  className="w-full"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+
+                {aiResult && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>AI Generated Content</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                        {aiResult}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="relative">
