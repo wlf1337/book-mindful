@@ -81,17 +81,52 @@ const ReadingSession = () => {
     return () => clearInterval(interval);
   }, [isReading, session]);
 
-  // Recalculate on visibility change
+  // Recalculate on multiple events to handle mobile browser suspension
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && session) {
+    if (!session) return;
+
+    const handleUpdate = () => {
+      if (isReading) {
         setElapsedSeconds(calculateElapsedTime());
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [session]);
+    // Multiple events for better mobile support
+    const events = ['visibilitychange', 'focus', 'pageshow', 'resume'];
+    events.forEach(event => {
+      if (event === 'visibilitychange') {
+        document.addEventListener(event, handleUpdate);
+      } else {
+        window.addEventListener(event, handleUpdate);
+      }
+    });
+
+    // Also refresh from database every 10 seconds as a fallback
+    const dbRefreshInterval = setInterval(async () => {
+      if (isReading && session?.id) {
+        const { data } = await supabase
+          .from("reading_sessions")
+          .select("*")
+          .eq("id", session.id)
+          .single();
+        
+        if (data) {
+          setSession(data);
+        }
+      }
+    }, 10000);
+
+    return () => {
+      events.forEach(event => {
+        if (event === 'visibilitychange') {
+          document.removeEventListener(event, handleUpdate);
+        } else {
+          window.removeEventListener(event, handleUpdate);
+        }
+      });
+      clearInterval(dbRefreshInterval);
+    };
+  }, [session, isReading]);
 
   const fetchBookData = async () => {
     try {
@@ -150,17 +185,19 @@ const ReadingSession = () => {
   const pauseSession = async () => {
     if (!session) return;
     
-    const currentElapsed = calculateElapsedTime();
-    
     try {
-      await supabase
+      const { data } = await supabase
         .from("reading_sessions")
         .update({ 
-          paused_duration_seconds: currentElapsed,
           paused_at: new Date().toISOString()
         })
-        .eq("id", session.id);
+        .eq("id", session.id)
+        .select()
+        .single();
       
+      if (data) {
+        setSession(data);
+      }
       setIsReading(false);
     } catch (error) {
       console.error("Failed to pause session", error);
@@ -168,14 +205,21 @@ const ReadingSession = () => {
   };
 
   const resumeSession = async () => {
-    if (!session) return;
+    if (!session?.paused_at) return;
     
     try {
-      // Reload session to get updated paused duration
+      // Calculate time spent paused
+      const pauseDuration = Math.floor((Date.now() - new Date(session.paused_at).getTime()) / 1000);
+      const newPausedTotal = (session.paused_duration_seconds || 0) + pauseDuration;
+      
       const { data } = await supabase
         .from("reading_sessions")
-        .select("*")
+        .update({
+          paused_duration_seconds: newPausedTotal,
+          paused_at: null
+        })
         .eq("id", session.id)
+        .select()
         .single();
       
       if (data) {
