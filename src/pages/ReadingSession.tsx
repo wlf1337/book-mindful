@@ -213,18 +213,18 @@ const ReadingSession = () => {
   }
 
   return (
-    <div className="min-h-screen gradient-warm pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <Navbar />
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
-          <Card className="shadow-reading">
+          <Card className="shadow-sm border-muted">
             <CardHeader className="pb-4">
               <CardTitle className="text-center text-xl sm:text-2xl">{book.title}</CardTitle>
               {book.author && <p className="text-center text-sm sm:text-base text-muted-foreground">{book.author}</p>}
             </CardHeader>
             <CardContent className="space-y-6 sm:space-y-8">
               <div className="text-center">
-                <div className="text-5xl sm:text-6xl font-bold mb-3 sm:mb-4 font-mono text-primary">
+                <div className="text-5xl sm:text-6xl font-bold mb-3 sm:mb-4 font-mono text-foreground">
                   {formatTime(elapsedSeconds)}
                 </div>
                 {!sessionId && (
@@ -255,24 +255,24 @@ const ReadingSession = () => {
 
               <div className="flex justify-center gap-3 sm:gap-4">
                 {!sessionId ? (
-                  <Button size="lg" onClick={startSession} className="px-8 sm:px-12 h-12 sm:h-auto text-base">
+                  <Button size="lg" onClick={startSession} className="px-8 sm:px-12 h-12 sm:h-auto text-base shadow-sm">
                     <Play className="h-5 w-5 mr-2" />
                     Start Reading
                   </Button>
                 ) : (
                   <>
                     {isReading ? (
-                      <Button size="lg" variant="secondary" onClick={pauseSession} className="h-12 sm:h-auto">
+                      <Button size="lg" variant="secondary" onClick={pauseSession} className="h-12 sm:h-auto shadow-sm">
                         <Pause className="h-5 w-5 mr-2" />
                         Pause
                       </Button>
                     ) : (
-                      <Button size="lg" onClick={resumeSession} className="h-12 sm:h-auto">
+                      <Button size="lg" onClick={resumeSession} className="h-12 sm:h-auto shadow-sm">
                         <Play className="h-5 w-5 mr-2" />
                         Resume
                       </Button>
                     )}
-                    <Button size="lg" variant="destructive" onClick={stopSession} className="h-12 sm:h-auto">
+                    <Button size="lg" variant="outline" onClick={stopSession} className="h-12 sm:h-auto shadow-sm">
                       <Square className="h-5 w-5 mr-2" />
                       Stop
                     </Button>
@@ -295,7 +295,7 @@ const ReadingSession = () => {
                     <Button 
                       onClick={addNote} 
                       disabled={!currentNote.trim()}
-                      className="w-full h-11"
+                      className="w-full h-11 shadow-sm"
                     >
                       Save Note
                     </Button>
@@ -306,7 +306,7 @@ const ReadingSession = () => {
                       <Label className="text-sm font-medium">Notes from this session ({sessionNotes.length})</Label>
                       <div className="space-y-2 max-h-60 overflow-y-auto">
                         {sessionNotes.map((note) => (
-                          <Card key={note.id}>
+                          <Card key={note.id} className="bg-muted/30 border-muted">
                             <CardContent className="p-3">
                               <div className="flex justify-between items-start gap-2">
                                 <p className="text-sm flex-1">{note.content}</p>
@@ -351,10 +351,10 @@ const ReadingSession = () => {
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={finishSession} className="flex-1 h-11">
+              <Button onClick={finishSession} className="flex-1 h-11 shadow-sm">
                 Save Session
               </Button>
-              <Button variant="outline" onClick={() => setShowEndDialog(false)} className="h-11">
+              <Button variant="outline" onClick={() => setShowEndDialog(false)} className="h-11 shadow-sm">
                 Cancel
               </Button>
             </div>
