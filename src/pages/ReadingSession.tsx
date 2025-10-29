@@ -19,12 +19,12 @@ const ReadingSession = () => {
   const [userBook, setUserBook] = useState<any>(null);
   const [isReading, setIsReading] = useState(false);
   const [session, setSession] = useState<any>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [startPage, setStartPage] = useState<number>(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [endPage, setEndPage] = useState<string>("");
   const [currentNote, setCurrentNote] = useState<string>("");
   const [sessionNotes, setSessionNotes] = useState<any[]>([]);
+  const [totalDuration, setTotalDuration] = useState<number>(0);
 
   useEffect(() => {
     if (id) {
@@ -50,83 +50,13 @@ const ReadingSession = () => {
 
       if (data) {
         setSession(data);
-        setIsReading(true);
+        setIsReading(!data.paused_at);
+        setTotalDuration(data.paused_duration_seconds || 0);
       }
     } catch (error) {
       console.error("Failed to load active session", error);
     }
   };
-
-  const calculateElapsedTime = () => {
-    if (!session?.started_at) return 0;
-    
-    const startTime = new Date(session.started_at).getTime();
-    const now = Date.now();
-    const pausedTime = session.paused_duration_seconds || 0;
-    
-    return Math.floor((now - startTime) / 1000) - pausedTime;
-  };
-
-  // Update timer every second, calculating from database timestamp
-  useEffect(() => {
-    if (!isReading || !session) return;
-    
-    const updateTimer = () => {
-      setElapsedSeconds(calculateElapsedTime());
-    };
-    
-    updateTimer(); // Update immediately
-    const interval = setInterval(updateTimer, 1000);
-    
-    return () => clearInterval(interval);
-  }, [isReading, session]);
-
-  // Recalculate on multiple events to handle mobile browser suspension
-  useEffect(() => {
-    if (!session) return;
-
-    const handleUpdate = () => {
-      if (isReading) {
-        setElapsedSeconds(calculateElapsedTime());
-      }
-    };
-
-    // Multiple events for better mobile support
-    const events = ['visibilitychange', 'focus', 'pageshow', 'resume'];
-    events.forEach(event => {
-      if (event === 'visibilitychange') {
-        document.addEventListener(event, handleUpdate);
-      } else {
-        window.addEventListener(event, handleUpdate);
-      }
-    });
-
-    // Also refresh from database every 10 seconds as a fallback
-    const dbRefreshInterval = setInterval(async () => {
-      if (isReading && session?.id) {
-        const { data } = await supabase
-          .from("reading_sessions")
-          .select("*")
-          .eq("id", session.id)
-          .single();
-        
-        if (data) {
-          setSession(data);
-        }
-      }
-    }, 10000);
-
-    return () => {
-      events.forEach(event => {
-        if (event === 'visibilitychange') {
-          document.removeEventListener(event, handleUpdate);
-        } else {
-          window.removeEventListener(event, handleUpdate);
-        }
-      });
-      clearInterval(dbRefreshInterval);
-    };
-  }, [session, isReading]);
 
   const fetchBookData = async () => {
     try {
@@ -173,7 +103,7 @@ const ReadingSession = () => {
       if (error) throw error;
 
       setSession(data);
-      setElapsedSeconds(0);
+      setTotalDuration(0);
       setIsReading(true);
       setSessionNotes([]);
       toast.success("Reading session started");
@@ -182,14 +112,27 @@ const ReadingSession = () => {
     }
   };
 
+  const calculateCurrentDuration = () => {
+    if (!session?.started_at) return 0;
+    
+    const startTime = new Date(session.started_at).getTime();
+    const endTime = session.paused_at ? new Date(session.paused_at).getTime() : Date.now();
+    const pausedTime = session.paused_duration_seconds || 0;
+    
+    return Math.floor((endTime - startTime) / 1000) - pausedTime;
+  };
+
   const pauseSession = async () => {
     if (!session) return;
+    
+    const duration = calculateCurrentDuration();
     
     try {
       const { data } = await supabase
         .from("reading_sessions")
         .update({ 
-          paused_at: new Date().toISOString()
+          paused_at: new Date().toISOString(),
+          paused_duration_seconds: duration
         })
         .eq("id", session.id)
         .select()
@@ -197,10 +140,13 @@ const ReadingSession = () => {
       
       if (data) {
         setSession(data);
+        setTotalDuration(duration);
       }
       setIsReading(false);
+      toast.success(`Paused - ${formatTime(duration)} read so far`);
     } catch (error) {
       console.error("Failed to pause session", error);
+      toast.error("Failed to pause session");
     }
   };
 
@@ -208,14 +154,9 @@ const ReadingSession = () => {
     if (!session?.paused_at) return;
     
     try {
-      // Calculate time spent paused
-      const pauseDuration = Math.floor((Date.now() - new Date(session.paused_at).getTime()) / 1000);
-      const newPausedTotal = (session.paused_duration_seconds || 0) + pauseDuration;
-      
       const { data } = await supabase
         .from("reading_sessions")
         .update({
-          paused_duration_seconds: newPausedTotal,
           paused_at: null
         })
         .eq("id", session.id)
@@ -228,6 +169,7 @@ const ReadingSession = () => {
       }
     } catch (error) {
       console.error("Failed to resume session", error);
+      toast.error("Failed to resume session");
     }
   };
 
@@ -302,12 +244,13 @@ const ReadingSession = () => {
       }
 
       const pagesRead = endPageNum - startPage;
+      const finalDuration = calculateCurrentDuration();
 
       const { error: sessionError } = await supabase
         .from("reading_sessions")
         .update({
           ended_at: new Date().toISOString(),
-          duration_seconds: elapsedSeconds,
+          duration_seconds: finalDuration,
           end_page: endPageNum,
           pages_read: pagesRead,
         })
@@ -339,9 +282,17 @@ const ReadingSession = () => {
     const secs = seconds % 60;
     
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}h ${minutes}m`;
     }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    }
+    return `${secs}s`;
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   if (!book || !userBook) {
@@ -367,9 +318,39 @@ const ReadingSession = () => {
             </CardHeader>
             <CardContent className="space-y-6 sm:space-y-8">
               <div className="text-center">
-                <div className="text-5xl sm:text-6xl font-bold mb-3 sm:mb-4 font-mono text-foreground">
-                  {formatTime(elapsedSeconds)}
-                </div>
+                {!session ? (
+                  <div className="space-y-4">
+                    <div className="text-4xl sm:text-5xl font-bold text-muted-foreground">
+                      Ready to read?
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Set your starting page and begin tracking
+                    </p>
+                  </div>
+                ) : isReading ? (
+                  <div className="space-y-3">
+                    <div className="text-lg sm:text-xl font-semibold text-primary">
+                      📖 Reading now
+                    </div>
+                    <div className="text-base sm:text-lg text-muted-foreground">
+                      Started at {formatTimestamp(session.started_at)}
+                    </div>
+                    {totalDuration > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        Previous time: {formatTime(totalDuration)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-4xl sm:text-5xl font-bold text-foreground">
+                      {formatTime(totalDuration)}
+                    </div>
+                    <div className="text-base text-muted-foreground">
+                      ⏸️ Paused
+                    </div>
+                  </div>
+                )}
                 {!session && (
                   <div className="mb-4 max-w-xs mx-auto">
                     <Label htmlFor="startPage" className="text-sm">Starting Page</Label>
@@ -388,11 +369,6 @@ const ReadingSession = () => {
                       </p>
                     )}
                   </div>
-                )}
-                {session && (
-                  <p className="text-sm sm:text-base text-muted-foreground">
-                    Started from page {startPage}
-                  </p>
                 )}
               </div>
 
