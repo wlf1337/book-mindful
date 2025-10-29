@@ -1,1 +1,4 @@
 project_id = "vmfrjxodsgfjjigharxm"
+
+[functions.process-notes-ai]
+verify_jwt = true
