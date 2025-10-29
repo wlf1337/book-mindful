@@ -223,10 +223,10 @@ const Goals = () => {
                     </p>
                   </div>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
                     onClick={() => deleteGoal(goal.id)}
-                    className="w-full"
+                    className="w-full text-muted-foreground hover:text-foreground"
                   >
                     Delete Goal
                   </Button>
