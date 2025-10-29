@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pause, Play, Square } from "lucide-react";
+import { Pause, Play, Square, Trash2 } from "lucide-react";
 
 const ReadingSession = () => {
   const { id } = useParams();
@@ -22,7 +22,8 @@ const ReadingSession = () => {
   const [startPage, setStartPage] = useState<number>(0);
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [endPage, setEndPage] = useState<string>("");
-  const [sessionNote, setSessionNote] = useState<string>("");
+  const [currentNote, setCurrentNote] = useState<string>("");
+  const [sessionNotes, setSessionNotes] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) fetchBookData();
@@ -83,6 +84,7 @@ const ReadingSession = () => {
 
       setSessionId(data.id);
       setIsReading(true);
+      setSessionNotes([]);
       toast.success("Reading session started");
     } catch (error: any) {
       toast.error("Failed to start session");
@@ -99,6 +101,53 @@ const ReadingSession = () => {
 
   const stopSession = () => {
     setShowEndDialog(true);
+  };
+
+  const addNote = async () => {
+    if (!currentNote.trim()) {
+      toast.error("Please enter a note");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("notes")
+        .insert({
+          user_id: user.id,
+          book_id: id,
+          content: currentNote,
+          note_type: "note",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSessionNotes([...sessionNotes, data]);
+      setCurrentNote("");
+      toast.success("Note saved!");
+    } catch (error: any) {
+      toast.error("Failed to save note");
+    }
+  };
+
+  const deleteSessionNote = async (noteId: string) => {
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId);
+
+      if (error) throw error;
+
+      setSessionNotes(sessionNotes.filter(n => n.id !== noteId));
+      toast.success("Note deleted");
+    } catch (error: any) {
+      toast.error("Failed to delete note");
+    }
   };
 
   const finishSession = async () => {
@@ -133,21 +182,6 @@ const ReadingSession = () => {
         .eq("id", userBook.id);
 
       if (userBookError) throw userBookError;
-
-      // Save session note if there is one
-      if (sessionNote.trim()) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from("notes")
-            .insert({
-              user_id: user.id,
-              book_id: id,
-              content: sessionNote,
-              note_type: "note",
-            });
-        }
-      }
 
       toast.success("Reading session saved!");
       navigate(`/book/${id}`);
@@ -247,19 +281,52 @@ const ReadingSession = () => {
               </div>
 
               {sessionId && (
-                <div className="space-y-2 max-w-2xl mx-auto">
-                  <Label htmlFor="sessionNote" className="text-sm">Notes & Thoughts</Label>
-                  <Textarea
-                    id="sessionNote"
-                    placeholder="Jot down your thoughts, quotes, or reflections while reading..."
-                    value={sessionNote}
-                    onChange={(e) => setSessionNote(e.target.value)}
-                    rows={6}
-                    className="resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This note will be saved when you end your session
-                  </p>
+                <div className="space-y-4 max-w-2xl mx-auto">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentNote" className="text-sm font-medium">Add a Note</Label>
+                    <div className="flex gap-2">
+                      <Textarea
+                        id="currentNote"
+                        placeholder="Write a thought, quote, or reflection..."
+                        value={currentNote}
+                        onChange={(e) => setCurrentNote(e.target.value)}
+                        rows={3}
+                        className="flex-1"
+                      />
+                    </div>
+                    <Button 
+                      onClick={addNote} 
+                      disabled={!currentNote.trim()}
+                      className="w-full"
+                    >
+                      Save Note
+                    </Button>
+                  </div>
+
+                  {sessionNotes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Notes from this session ({sessionNotes.length})</Label>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {sessionNotes.map((note) => (
+                          <Card key={note.id}>
+                            <CardContent className="p-3">
+                              <div className="flex justify-between items-start gap-2">
+                                <p className="text-sm flex-1">{note.content}</p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteSessionNote(note.id)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
