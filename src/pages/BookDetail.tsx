@@ -231,8 +231,8 @@ const BookDetail = () => {
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="w-full" size="sm">
-                      <Trash2 className="h-4 w-4 mr-2" />
+                    <Button variant="ghost" className="w-full text-muted-foreground hover:text-destructive" size="sm">
+                      <Trash2 className="h-3 w-3 mr-2" />
                       Remove from Library
                     </Button>
                   </AlertDialogTrigger>
