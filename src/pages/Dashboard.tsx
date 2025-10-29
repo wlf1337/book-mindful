@@ -135,13 +135,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen gradient-warm">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Track your reading journey</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Track your reading journey</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <StatsCard
             title="Books in Library"
             value={stats.totalBooks}
@@ -172,15 +172,15 @@ const Dashboard = () => {
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold mb-4">Currently Reading</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Currently Reading</h2>
           {currentlyReading.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No books currently being read</p>
-              <p className="text-sm mt-2">Add a book from your library to start tracking</p>
+              <p className="text-sm sm:text-base">No books currently being read</p>
+              <p className="text-xs sm:text-sm mt-2">Add a book from your library to start tracking</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {currentlyReading.map((book) => (
                 <BookCard
                   key={book.id}

@@ -213,18 +213,18 @@ const ReadingSession = () => {
   }
 
   return (
-    <div className="min-h-screen gradient-warm">
+    <div className="min-h-screen gradient-warm pb-20">
       <Navbar />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-reading">
-            <CardHeader>
-              <CardTitle className="text-center text-2xl">{book.title}</CardTitle>
-              {book.author && <p className="text-center text-muted-foreground">{book.author}</p>}
+            <CardHeader className="pb-4">
+              <CardTitle className="text-center text-xl sm:text-2xl">{book.title}</CardTitle>
+              {book.author && <p className="text-center text-sm sm:text-base text-muted-foreground">{book.author}</p>}
             </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="space-y-6 sm:space-y-8">
               <div className="text-center">
-                <div className="text-6xl font-bold mb-4 font-mono text-primary">
+                <div className="text-5xl sm:text-6xl font-bold mb-3 sm:mb-4 font-mono text-primary">
                   {formatTime(elapsedSeconds)}
                 </div>
                 {!sessionId && (
@@ -237,7 +237,7 @@ const ReadingSession = () => {
                       onChange={(e) => setStartPage(parseInt(e.target.value) || 0)}
                       min={0}
                       max={book.page_count || undefined}
-                      className="mt-2 text-center text-lg font-semibold"
+                      className="mt-2 text-center text-lg font-semibold h-12"
                     />
                     {book.page_count && (
                       <p className="text-xs text-muted-foreground mt-1">
@@ -247,32 +247,32 @@ const ReadingSession = () => {
                   </div>
                 )}
                 {sessionId && (
-                  <p className="text-muted-foreground">
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Started from page {startPage}
                   </p>
                 )}
               </div>
 
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center gap-3 sm:gap-4">
                 {!sessionId ? (
-                  <Button size="lg" onClick={startSession} className="px-12">
+                  <Button size="lg" onClick={startSession} className="px-8 sm:px-12 h-12 sm:h-auto text-base">
                     <Play className="h-5 w-5 mr-2" />
                     Start Reading
                   </Button>
                 ) : (
                   <>
                     {isReading ? (
-                      <Button size="lg" variant="secondary" onClick={pauseSession}>
+                      <Button size="lg" variant="secondary" onClick={pauseSession} className="h-12 sm:h-auto">
                         <Pause className="h-5 w-5 mr-2" />
                         Pause
                       </Button>
                     ) : (
-                      <Button size="lg" onClick={resumeSession}>
+                      <Button size="lg" onClick={resumeSession} className="h-12 sm:h-auto">
                         <Play className="h-5 w-5 mr-2" />
                         Resume
                       </Button>
                     )}
-                    <Button size="lg" variant="destructive" onClick={stopSession}>
+                    <Button size="lg" variant="destructive" onClick={stopSession} className="h-12 sm:h-auto">
                       <Square className="h-5 w-5 mr-2" />
                       Stop
                     </Button>
@@ -281,23 +281,21 @@ const ReadingSession = () => {
               </div>
 
               {sessionId && (
-                <div className="space-y-4 max-w-2xl mx-auto">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="currentNote" className="text-sm font-medium">Add a Note</Label>
-                    <div className="flex gap-2">
-                      <Textarea
-                        id="currentNote"
-                        placeholder="Write a thought, quote, or reflection..."
-                        value={currentNote}
-                        onChange={(e) => setCurrentNote(e.target.value)}
-                        rows={3}
-                        className="flex-1"
-                      />
-                    </div>
+                    <Textarea
+                      id="currentNote"
+                      placeholder="Write a thought, quote, or reflection..."
+                      value={currentNote}
+                      onChange={(e) => setCurrentNote(e.target.value)}
+                      rows={3}
+                      className="text-base"
+                    />
                     <Button 
                       onClick={addNote} 
                       disabled={!currentNote.trim()}
-                      className="w-full"
+                      className="w-full h-11"
                     >
                       Save Note
                     </Button>
@@ -316,9 +314,9 @@ const ReadingSession = () => {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => deleteSessionNote(note.id)}
-                                  className="h-6 w-6 p-0"
+                                  className="h-8 w-8 p-0"
                                 >
-                                  <Trash2 className="h-3 w-3" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </CardContent>
@@ -349,13 +347,14 @@ const ReadingSession = () => {
                 value={endPage}
                 onChange={(e) => setEndPage(e.target.value)}
                 min={startPage}
+                className="h-12 text-base"
               />
             </div>
             <div className="flex gap-2">
-              <Button onClick={finishSession} className="flex-1">
+              <Button onClick={finishSession} className="flex-1 h-11">
                 Save Session
               </Button>
-              <Button variant="outline" onClick={() => setShowEndDialog(false)}>
+              <Button variant="outline" onClick={() => setShowEndDialog(false)} className="h-11">
                 Cancel
               </Button>
             </div>

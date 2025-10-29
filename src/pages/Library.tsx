@@ -76,7 +76,7 @@ const Library = () => {
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {filteredBooks.map((book) => (
           <BookCard
             key={book.id}
@@ -107,38 +107,40 @@ const Library = () => {
   return (
     <div className="min-h-screen gradient-warm">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        <div className="flex justify-between items-center">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Library</h1>
-            <p className="text-muted-foreground">{books.length} books in your collection</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">My Library</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">{books.length} books in your collection</p>
           </div>
           <AddBookDialog onBookAdded={fetchBooks} />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">All Books ({books.length})</TabsTrigger>
-            <TabsTrigger value="reading">
+          <TabsList className="w-full grid grid-cols-4 h-auto">
+            <TabsTrigger value="all" className="text-xs sm:text-sm py-2">
+              All ({books.length})
+            </TabsTrigger>
+            <TabsTrigger value="reading" className="text-xs sm:text-sm py-2">
               Reading ({filterBooks("reading").length})
             </TabsTrigger>
-            <TabsTrigger value="want_to_read">
-              Want to Read ({filterBooks("want_to_read").length})
+            <TabsTrigger value="want_to_read" className="text-xs sm:text-sm py-2">
+              Want ({filterBooks("want_to_read").length})
             </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({filterBooks("completed").length})
+            <TabsTrigger value="completed" className="text-xs sm:text-sm py-2">
+              Done ({filterBooks("completed").length})
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="all" className="mt-6">
+          <TabsContent value="all" className="mt-4 sm:mt-6">
             {renderBookGrid(books)}
           </TabsContent>
-          <TabsContent value="reading" className="mt-6">
+          <TabsContent value="reading" className="mt-4 sm:mt-6">
             {renderBookGrid(filterBooks("reading"))}
           </TabsContent>
-          <TabsContent value="want_to_read" className="mt-6">
+          <TabsContent value="want_to_read" className="mt-4 sm:mt-6">
             {renderBookGrid(filterBooks("want_to_read"))}
           </TabsContent>
-          <TabsContent value="completed" className="mt-6">
+          <TabsContent value="completed" className="mt-4 sm:mt-6">
             {renderBookGrid(filterBooks("completed"))}
           </TabsContent>
         </Tabs>

@@ -27,12 +27,12 @@ export const Navbar = () => {
   ];
 
   return (
-    <nav className="border-b bg-card shadow-book">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
-            <BookOpen className="h-6 w-6" />
-            PagePace
+    <nav className="border-b bg-card shadow-book sticky top-0 z-50">
+      <div className="container mx-auto px-3">
+        <div className="flex items-center justify-between h-14">
+          <Link to="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+            <BookOpen className="h-5 w-5" />
+            <span className="hidden sm:inline">PagePace</span>
           </Link>
           
           <div className="flex items-center gap-1">
@@ -45,11 +45,11 @@ export const Navbar = () => {
                   variant={isActive ? "secondary" : "ghost"}
                   size="sm"
                   asChild
-                  className="transition-smooth"
+                  className="transition-smooth h-9 px-2 sm:px-3"
                 >
                   <Link to={item.to}>
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.label}
+                    <Icon className="h-4 w-4" />
+                    <span className="ml-1 hidden sm:inline text-xs">{item.label}</span>
                   </Link>
                 </Button>
               );
@@ -58,10 +58,10 @@ export const Navbar = () => {
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="ml-2"
+              className="ml-1 h-9 px-2 sm:px-3"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              <LogOut className="h-4 w-4" />
+              <span className="ml-1 hidden sm:inline text-xs">Logout</span>
             </Button>
           </div>
         </div>
