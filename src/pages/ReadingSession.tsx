@@ -235,6 +235,26 @@ const ReadingSession = () => {
     setShowEndDialog(true);
   };
 
+  const cancelSession = async () => {
+    if (!session) return;
+    
+    try {
+      await supabase
+        .from("reading_sessions")
+        .delete()
+        .eq("id", session.id);
+      
+      setSession(null);
+      setIsReading(false);
+      setElapsedSeconds(0);
+      setSessionNotes([]);
+      toast.success("Session cancelled");
+    } catch (error) {
+      console.error("Failed to cancel session", error);
+      toast.error("Failed to cancel session");
+    }
+  };
+
   const addNote = async () => {
     // Validate note content
     const validation = noteSchema.safeParse({ content: currentNote });
@@ -418,6 +438,9 @@ const ReadingSession = () => {
                     <Button size="lg" variant="outline" onClick={stopSession} className="h-12 sm:h-auto shadow-sm">
                       <Square className="h-5 w-5 mr-2" />
                       Stop
+                    </Button>
+                    <Button size="lg" variant="destructive" onClick={cancelSession} className="h-12 sm:h-auto shadow-sm">
+                      Cancel
                     </Button>
                   </>
                 )}
