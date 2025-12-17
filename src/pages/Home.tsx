@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
+import { StatsCard } from "@/components/StatsCard";
 import { BookCard } from "@/components/BookCard";
 import { AddBookDialog } from "@/components/AddBookDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { BookOpen, Flame, Target, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { BookOpen, Plus } from "lucide-react";
 
 interface Book {
   id: string;
@@ -21,21 +22,27 @@ interface Book {
   };
 }
 
-const Library = () => {
+const Home = () => {
   const [books, setBooks] = useState<Book[]>([]);
+  const [stats, setStats] = useState({
+    totalBooks: 0,
+    booksCompleted: 0,
+    readingStreak: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("reading");
 
   useEffect(() => {
-    fetchBooks();
+    fetchData();
   }, []);
 
-  const fetchBooks = async () => {
+  const fetchData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Fetch all books
+      const { data: allBooks, error: booksError } = await supabase
         .from("user_books")
         .select(`
           id,
@@ -52,13 +59,63 @@ const Library = () => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setBooks(data || []);
+      if (booksError) throw booksError;
+
+      const { count: totalCount } = await supabase
+        .from("user_books")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const { count: completedCount } = await supabase
+        .from("user_books")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed");
+
+      const { data: sessions } = await supabase
+        .from("reading_sessions")
+        .select("started_at")
+        .eq("user_id", user.id)
+        .not("ended_at", "is", null)
+        .order("started_at", { ascending: false });
+
+      const streak = calculateStreak(sessions || []);
+
+      setBooks(allBooks || []);
+      setStats({
+        totalBooks: totalCount || 0,
+        booksCompleted: completedCount || 0,
+        readingStreak: streak,
+      });
     } catch (error: any) {
-      toast.error("Failed to load books");
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateStreak = (sessions: any[]) => {
+    if (!sessions.length) return 0;
+
+    const uniqueDates = [...new Set(sessions.map(s => 
+      new Date(s.started_at).toDateString()
+    ))];
+
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const date = new Date(uniqueDates[i]);
+      const daysDiff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === i) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   };
 
   const filterBooks = (status?: string) => {
@@ -71,7 +128,10 @@ const Library = () => {
       return (
         <div className="text-center py-12 text-muted-foreground">
           <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No books found</p>
+          <p className="text-sm">No books here yet</p>
+          <div className="mt-4">
+            <AddBookDialog onBookAdded={fetchData} />
+          </div>
         </div>
       );
     }
@@ -90,7 +150,7 @@ const Library = () => {
             pageCount={book.books.page_count || undefined}
           />
         ))}
-        <AddBookDialog onBookAdded={fetchBooks}>
+        <AddBookDialog onBookAdded={fetchData}>
           <Card className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 bg-muted/20">
             <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center h-full min-h-[240px] sm:min-h-[280px]">
               <div className="flex flex-col items-center justify-center space-y-2">
@@ -118,20 +178,32 @@ const Library = () => {
   return (
     <div className="min-h-screen gradient-warm">
       <Navbar />
-      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">My Library</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">{books.length} books in your collection</p>
-          </div>
-          <AddBookDialog onBookAdded={fetchBooks} />
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6">
+        {/* Compact Stats Bar */}
+        <div className="grid grid-cols-3 gap-3">
+          <StatsCard
+            title="Streak"
+            value={stats.readingStreak}
+            subtitle={stats.readingStreak === 1 ? "day" : "days"}
+            icon={Flame}
+          />
+          <StatsCard
+            title="Library"
+            value={stats.totalBooks}
+            subtitle={stats.totalBooks === 1 ? "book" : "books"}
+            icon={BookOpen}
+          />
+          <StatsCard
+            title="Completed"
+            value={stats.booksCompleted}
+            subtitle={stats.booksCompleted === 1 ? "book" : "books"}
+            icon={Target}
+          />
         </div>
 
+        {/* Library with Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-4 h-auto">
-            <TabsTrigger value="all" className="text-xs sm:text-sm py-2">
-              All ({books.length})
-            </TabsTrigger>
             <TabsTrigger value="reading" className="text-xs sm:text-sm py-2">
               Reading ({filterBooks("reading").length})
             </TabsTrigger>
@@ -141,10 +213,10 @@ const Library = () => {
             <TabsTrigger value="completed" className="text-xs sm:text-sm py-2">
               Done ({filterBooks("completed").length})
             </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs sm:text-sm py-2">
+              All ({books.length})
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="all" className="mt-4 sm:mt-6">
-            {renderBookGrid(books)}
-          </TabsContent>
           <TabsContent value="reading" className="mt-4 sm:mt-6">
             {renderBookGrid(filterBooks("reading"))}
           </TabsContent>
@@ -154,10 +226,13 @@ const Library = () => {
           <TabsContent value="completed" className="mt-4 sm:mt-6">
             {renderBookGrid(filterBooks("completed"))}
           </TabsContent>
+          <TabsContent value="all" className="mt-4 sm:mt-6">
+            {renderBookGrid(books)}
+          </TabsContent>
         </Tabs>
       </main>
     </div>
   );
 };
 
-export default Library;
+export default Home;
