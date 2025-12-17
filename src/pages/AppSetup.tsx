@@ -114,7 +114,7 @@ const AppSetup = () => {
     } else {
       return [
         "1. Look for the install icon in your browser's address bar",
-        "2. Or click the menu and select 'Install PagePace'",
+        "2. Or click the menu and select 'Install Quietly'",
         "3. Confirm the installation",
         "4. The app will open in its own window"
       ];
@@ -125,7 +125,7 @@ const AppSetup = () => {
     if (platform === "ios") {
       return [
         "⚠️ iOS has limited PWA notification support",
-        "1. Make sure PagePace is installed to your home screen",
+        "1. Make sure Quietly is installed to your home screen",
         "2. Open the app FROM the home screen icon (not Safari)",
         "3. Tap 'Enable Notifications' below",
         "4. Tap 'Allow' when prompted",
@@ -150,10 +150,10 @@ const AppSetup = () => {
   const steps: SetupStep[] = [
     {
       id: "install",
-      title: "Install PagePace",
+      title: "Install Quietly",
       description: isInstalled 
         ? "App is installed on your device" 
-        : "Add PagePace to your home screen for the best experience",
+        : "Add Quietly to your home screen for the best experience",
       isComplete: isInstalled,
       action: deferredPrompt ? handleInstallClick : undefined,
       actionLabel: "Install App",
@@ -183,7 +183,7 @@ const AppSetup = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">App Setup</h1>
           <p className="text-muted-foreground">
-            Complete these steps to get the best experience with PagePace
+            Complete these steps to get the best experience with Quietly
           </p>
         </div>
 
@@ -203,7 +203,7 @@ const AppSetup = () => {
             {progress === 100 && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
                 <Check className="h-4 w-4" />
-                All set! You're ready to use PagePace
+                All set! You're ready to use Quietly
               </p>
             )}
           </CardContent>
@@ -286,7 +286,7 @@ const AppSetup = () => {
                       <ul className="list-disc ml-5 mt-2 space-y-1 text-sm">
                         {platform === "ios" ? (
                           <>
-                            <li>Go to Settings → PagePace → Notifications</li>
+                            <li>Go to Settings → Quietly → Notifications</li>
                             <li>Enable "Allow Notifications"</li>
                           </>
                         ) : (
@@ -317,7 +317,7 @@ const AppSetup = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              <strong>PagePace supports true push notifications!</strong> Your daily reading reminders will be delivered even when the app is closed.
+              <strong>Quietly supports true push notifications!</strong> Your daily reading reminders will be delivered even when the app is closed.
             </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
@@ -386,7 +386,7 @@ const AppSetup = () => {
                 <div>
                   <p className="font-medium">Keep the app open</p>
                   <p className="text-sm text-muted-foreground">
-                    In-app reminders work while PagePace is running in the background
+                    In-app reminders work while Quietly is running in the background
                   </p>
                 </div>
               </li>
@@ -397,7 +397,7 @@ const AppSetup = () => {
                 <div>
                   <p className="font-medium">Set a phone reminder</p>
                   <p className="text-sm text-muted-foreground">
-                    Use your phone's built-in reminders to open PagePace daily
+                    Use your phone's built-in reminders to open Quietly daily
                   </p>
                 </div>
               </li>
