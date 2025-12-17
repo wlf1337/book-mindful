@@ -32,7 +32,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-lg text-primary">
             <BookOpen className="h-5 w-5" />
-            <span>PagePace</span>
+            <span>Quietly</span>
           </div>
           <Button asChild size="sm">
             <Link to="/auth">Get Started</Link>
@@ -61,7 +61,7 @@ const Landing = () => {
             <div className="border-b px-4 h-12 flex items-center justify-between bg-card">
               <div className="flex items-center gap-2 text-primary font-semibold">
                 <BookOpen className="h-4 w-4" />
-                <span className="text-sm">PagePace</span>
+                <span className="text-sm">Quietly</span>
               </div>
               <div className="w-6 h-6 rounded-full bg-muted"></div>
             </div>

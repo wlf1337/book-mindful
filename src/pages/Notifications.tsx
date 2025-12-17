@@ -49,7 +49,7 @@ const Notifications = () => {
       await sendNotification(
         "Test Notification",
         {
-          body: "This is a test notification from PagePace!",
+          body: "This is a test notification from Quietly!",
           tag: "test",
         }
       );
@@ -121,7 +121,7 @@ const Notifications = () => {
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">
-                  PagePace can send you helpful reminders and notifications to keep you motivated on your reading journey.
+                  Quietly can send you helpful reminders and notifications to keep you motivated on your reading journey.
                 </p>
                 <Button 
                   onClick={handleRequestPermission} 
@@ -308,7 +308,7 @@ const Notifications = () => {
         <Alert>
           <Smartphone className="h-4 w-4" />
           <AlertDescription>
-            <strong>💡 Tip:</strong> Visit the <a href="/setup" className="text-primary underline font-medium">App Setup</a> page for a step-by-step guide to install PagePace and configure notifications properly.
+            <strong>💡 Tip:</strong> Visit the <a href="/setup" className="text-primary underline font-medium">App Setup</a> page for a step-by-step guide to install Quietly and configure notifications properly.
           </AlertDescription>
         </Alert>
       </main>

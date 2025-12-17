@@ -57,7 +57,7 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-14">
           <Link to="/home" className="flex items-center gap-2 font-bold text-lg text-primary">
             <BookOpen className="h-5 w-5" />
-            <span className="hidden sm:inline">PagePace</span>
+            <span className="hidden sm:inline">Quietly</span>
           </Link>
           
           <DropdownMenu>

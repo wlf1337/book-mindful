@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => ({
         type: "module"
       },
       manifest: {
-        name: "PagePace - Reading Tracker",
-        short_name: "PagePace",
+        name: "Quietly - Reading Tracker",
+        short_name: "Quietly",
         description: "Track your reading journey with mindful reading sessions",
         theme_color: "#1a1a1a",
         background_color: "#ffffff",

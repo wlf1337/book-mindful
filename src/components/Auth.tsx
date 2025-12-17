@@ -41,7 +41,7 @@ export const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Account created! Welcome to PagePace.");
+        toast.success("Account created! Welcome to Quietly.");
         navigate("/home");
       }
     } catch (error: any) {
@@ -60,7 +60,7 @@ export const Auth = () => {
               <BookOpen className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">PagePace</CardTitle>
+          <CardTitle className="text-2xl font-bold">Quietly</CardTitle>
           <CardDescription>
             Track your reading journey, one page at a time
           </CardDescription>
