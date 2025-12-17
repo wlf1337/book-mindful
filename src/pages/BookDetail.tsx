@@ -148,7 +148,7 @@ const BookDetail = () => {
 
       if (error) throw error;
       toast.success("Book removed from library");
-      navigate("/library");
+      navigate("/home");
     } catch (error: any) {
       toast.error("Failed to delete book");
     }
