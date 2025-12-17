@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { noteSchema, pageNumberSchema } from "@/lib/validation";
 const ReadingSession = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [book, setBook] = useState<any>(null);
   const [userBook, setUserBook] = useState<any>(null);
   const [isReading, setIsReading] = useState(false);
@@ -25,6 +26,9 @@ const ReadingSession = () => {
   const [endPage, setEndPage] = useState<string>("");
   const [currentNote, setCurrentNote] = useState<string>("");
   const [sessionNotes, setSessionNotes] = useState<any[]>([]);
+
+  const autostart = searchParams.get('autostart') === 'true';
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -154,6 +158,14 @@ const ReadingSession = () => {
     }
   };
 
+  // Auto-start session if coming from "Continue Reading" button
+  useEffect(() => {
+    if (autostart && !hasAutoStarted && book && userBook && !session) {
+      setHasAutoStarted(true);
+      startSession();
+    }
+  }, [autostart, hasAutoStarted, book, userBook, session]);
+
   const startSession = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -275,6 +287,7 @@ const ReadingSession = () => {
           book_id: id,
           content: validation.data.content,
           note_type: "note",
+          page_number: startPage,
         })
         .select()
         .single();

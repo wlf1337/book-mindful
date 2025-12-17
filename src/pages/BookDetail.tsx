@@ -203,7 +203,7 @@ const BookDetail = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="want_to_read">Want to Read</SelectItem>
+                        <SelectItem value="want_to_read">Up Next</SelectItem>
                         <SelectItem value="reading">Reading</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                       </SelectContent>

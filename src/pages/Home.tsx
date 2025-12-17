@@ -208,7 +208,7 @@ const Home = () => {
               Reading ({filterBooks("reading").length})
             </TabsTrigger>
             <TabsTrigger value="want_to_read" className="text-xs sm:text-sm py-2">
-              Want ({filterBooks("want_to_read").length})
+              Next ({filterBooks("want_to_read").length})
             </TabsTrigger>
             <TabsTrigger value="completed" className="text-xs sm:text-sm py-2">
               Done ({filterBooks("completed").length})

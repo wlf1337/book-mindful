@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Book } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Book, Play } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 interface BookCardProps {
   id: string;
@@ -14,10 +15,11 @@ interface BookCardProps {
 }
 
 export const BookCard = ({ id, title, author, coverUrl, status, currentPage = 0, pageCount }: BookCardProps) => {
+  const navigate = useNavigate();
   const progress = pageCount ? Math.round((currentPage / pageCount) * 100) : 0;
   
   const statusColors = {
-    reading: "bg-green-500 text-white",
+    reading: "bg-accent text-accent-foreground",
     completed: "bg-primary text-primary-foreground",
     want_to_read: "bg-muted text-muted-foreground",
   };
@@ -25,7 +27,13 @@ export const BookCard = ({ id, title, author, coverUrl, status, currentPage = 0,
   const statusLabels = {
     reading: "Reading",
     completed: "Completed",
-    want_to_read: "Want to Read",
+    want_to_read: "Up Next",
+  };
+
+  const handleContinueReading = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/read/${id}?autostart=true`);
   };
 
   return (
@@ -44,20 +52,30 @@ export const BookCard = ({ id, title, author, coverUrl, status, currentPage = 0,
               </Badge>
             </div>
           </div>
-          <div className="p-4 space-y-2">
+          <div className="p-3 sm:p-4 space-y-2">
             <h3 className="font-semibold line-clamp-2 text-sm">{title}</h3>
             {author && <p className="text-xs text-muted-foreground line-clamp-1">{author}</p>}
             {status === "reading" && pageCount && (
-              <div className="space-y-1">
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-accent transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {currentPage} / {pageCount} pages ({progress}%)
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {currentPage} / {pageCount} pages ({progress}%)
-                </p>
+                <Button 
+                  size="sm" 
+                  className="w-full h-8 text-xs"
+                  onClick={handleContinueReading}
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Continue Reading
+                </Button>
               </div>
             )}
           </div>
