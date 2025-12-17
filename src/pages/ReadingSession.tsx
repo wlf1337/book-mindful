@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pause, Play, Square, Trash2 } from "lucide-react";
 import { noteSchema, pageNumberSchema } from "@/lib/validation";
+import { ScanToNote } from "@/components/ScanToNote";
 
 const ReadingSession = () => {
   const { id } = useParams();
@@ -467,7 +468,24 @@ const ReadingSession = () => {
               {session && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="currentNote" className="text-sm font-medium">Add a Note</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="currentNote" className="text-sm font-medium">Add a Note</Label>
+                      <ScanToNote
+                        onSaveNote={async (text) => {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (!user) throw new Error("Not authenticated");
+                          const { data, error } = await supabase.from("notes").insert({
+                            user_id: user.id,
+                            book_id: id,
+                            content: text,
+                            note_type: "quote",
+                            page_number: startPage,
+                          }).select().single();
+                          if (error) throw error;
+                          setSessionNotes([...sessionNotes, data]);
+                        }}
+                      />
+                    </div>
                     <Textarea
                       id="currentNote"
                       placeholder="Write a thought, quote, or reflection..."
