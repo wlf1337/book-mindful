@@ -311,47 +311,46 @@ const AppSetup = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Important: About Scheduled Notifications
+              <Check className="h-5 w-5 text-green-500" />
+              Server-Side Push Notifications
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              <strong>How PWA notifications work:</strong>
+              <strong>PagePace supports true push notifications!</strong> Your daily reading reminders will be delivered even when the app is closed.
             </p>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Immediate notifications</strong> (like the test) work great</span>
+                <span><strong>Daily reminders</strong> are sent from our server at your chosen time</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span><strong>In-app reminders</strong> work while the app is open</span>
+                <span><strong>Works offline</strong> - notifications arrive even if you haven't opened the app</span>
               </li>
               <li className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <span><strong>Scheduled notifications</strong> (like daily reminders at 8pm) require the app to be open at that time, OR need a server to send push notifications</span>
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Personalized</strong> - includes the title of your current book</span>
               </li>
             </ul>
 
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Pro tip:</strong> For reliable daily reminders, set a recurring alarm/reminder on your phone that opens PagePace. The app works offline once installed!
+                <strong>Setup:</strong> Go to <a href="/notifications" className="text-primary underline font-medium">Notifications settings</a> to enable push notifications and set your daily reminder time.
               </AlertDescription>
             </Alert>
 
             {platform === "ios" && (
               <Alert>
                 <Smartphone className="h-4 w-4" />
-                <AlertTitle>iOS Limitations</AlertTitle>
+                <AlertTitle>iOS Requirements</AlertTitle>
                 <AlertDescription>
-                  On iPhone/iPad, PWA notifications have more limitations:
+                  On iPhone/iPad, push notifications require:
                   <ul className="list-disc ml-5 mt-2 space-y-1">
-                    <li>Must be installed to home screen first</li>
-                    <li>Must open app from home screen icon (not Safari)</li>
-                    <li>iOS 16.4+ required for web push notifications</li>
-                    <li>Notifications may not work in all cases</li>
+                    <li>iOS 16.4 or later</li>
+                    <li>App must be installed to home screen first</li>
+                    <li>Enable notifications from the app (not Safari)</li>
                   </ul>
                 </AlertDescription>
               </Alert>
