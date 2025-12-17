@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Book, Clock, FileText, Play, Star, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { noteSchema } from "@/lib/validation";
+import { ScanToNote } from "@/components/ScanToNote";
 
 const BookDetail = () => {
   const { id } = useParams();
@@ -299,8 +300,22 @@ const BookDetail = () => {
             </Card>
 
             <Card className="shadow-book">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Notes</CardTitle>
+                <ScanToNote
+                  onSaveNote={async (text) => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Not authenticated");
+                    const { error } = await supabase.from("notes").insert({
+                      user_id: user.id,
+                      book_id: id,
+                      content: text,
+                      note_type: "quote",
+                    });
+                    if (error) throw error;
+                    fetchBookData();
+                  }}
+                />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
