@@ -28,7 +28,7 @@ export const Auth = () => {
         });
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/");
+        navigate("/home");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -37,12 +37,12 @@ export const Auth = () => {
             data: {
               full_name: fullName,
             },
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/home`,
           },
         });
         if (error) throw error;
         toast.success("Account created! Welcome to PagePace.");
-        navigate("/");
+        navigate("/home");
       }
     } catch (error: any) {
       toast.error(error.message);

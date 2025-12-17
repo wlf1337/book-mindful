@@ -45,7 +45,7 @@ export const Navbar = () => {
       toast.error("Failed to log out");
     } else {
       toast.success("Logged out successfully");
-      navigate("/auth");
+      navigate("/");
     }
   };
 
@@ -55,7 +55,7 @@ export const Navbar = () => {
     <nav className="border-b bg-card shadow-book sticky top-0 z-50">
       <div className="container mx-auto px-3">
         <div className="flex items-center justify-between h-14">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+          <Link to="/home" className="flex items-center gap-2 font-bold text-lg text-primary">
             <BookOpen className="h-5 w-5" />
             <span className="hidden sm:inline">PagePace</span>
           </Link>
