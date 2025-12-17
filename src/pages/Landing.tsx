@@ -5,15 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const mockBooks = [
   {
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "https://covers.openlibrary.org/b/isbn/9780735211292-L.jpg",
+    title: "Stolen Focus",
+    author: "Johann Hari",
+    cover: "https://covers.openlibrary.org/b/isbn/9781526620224-L.jpg",
     progress: 67,
   },
   {
-    title: "1984",
-    author: "George Orwell",
-    cover: "https://covers.openlibrary.org/b/isbn/9780451524935-L.jpg",
+    title: "The Alchemist",
+    author: "Paulo Coelho",
+    cover: "https://covers.openlibrary.org/b/isbn/9780062315007-L.jpg",
     progress: 23,
   },
   {
