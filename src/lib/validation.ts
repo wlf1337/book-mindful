@@ -31,3 +31,32 @@ export const aiPromptSchema = z.object({
 
 // ISBN validation (basic format check)
 export const isbnSchema = z.string().trim().regex(/^[0-9X-]{10,17}$/, "Invalid ISBN format");
+
+// OpenLibrary API response validation schemas
+export const openLibrarySearchBookSchema = z.object({
+  title: z.string().max(1000).default("Unknown Title"),
+  author_name: z.array(z.string()).optional(),
+  cover_i: z.number().optional(),
+  isbn: z.array(z.string()).optional(),
+  number_of_pages_median: z.number().optional(),
+  publisher: z.array(z.string()).optional(),
+  first_publish_year: z.number().optional(),
+});
+
+export const openLibrarySearchResponseSchema = z.object({
+  docs: z.array(openLibrarySearchBookSchema).default([]),
+});
+
+export const openLibraryIsbnResponseSchema = z.object({
+  title: z.string().max(1000),
+  covers: z.array(z.number()).optional(),
+  authors: z.array(z.object({ key: z.string() })).optional(),
+  number_of_pages: z.number().optional(),
+  publishers: z.array(z.string()).optional(),
+  publish_date: z.string().optional(),
+  description: z.union([z.string(), z.object({ value: z.string() })]).optional(),
+});
+
+export const openLibraryAuthorSchema = z.object({
+  name: z.string().max(500).default("Unknown Author"),
+});
