@@ -7,61 +7,34 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/hooks/useNotifications";
-import { notificationTemplates } from "@/lib/notifications";
-import { supabase } from "@/integrations/supabase/client";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { toast } from "sonner";
-import { Bell, BellOff, Check, AlertCircle, Smartphone } from "lucide-react";
+import { Bell, Check, AlertCircle, Smartphone, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Notifications = () => {
   const { isSupported, permission, isGranted, isRequesting, requestPermission, sendNotification } = useNotifications();
-  const [settings, setSettings] = useState({
-    dailyReminder: false,
-    reminderTime: "20:00",
-    goalNotifications: true,
-    streakNotifications: true,
-    completionNotifications: true,
-  });
+  const { 
+    isSubscribed, 
+    isLoading: isSubscriptionLoading, 
+    settings, 
+    subscribe, 
+    updateSettings 
+  } = usePushSubscription();
+  
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // In a real app, you'd fetch these from a database
-      // For now, we'll use localStorage
-      const saved = localStorage.getItem(`notification-settings-${user.id}`);
-      if (saved) {
-        setSettings(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error("Failed to load notification settings:", error);
-    }
-  };
-
-  const saveSettings = async (newSettings: typeof settings) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      localStorage.setItem(`notification-settings-${user.id}`, JSON.stringify(newSettings));
-      setSettings(newSettings);
-      toast.success("Settings saved");
-    } catch (error) {
-      toast.error("Failed to save settings");
-    }
-  };
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const handleRequestPermission = async () => {
     try {
       const result = await requestPermission();
       if (result === "granted") {
         toast.success("Notifications enabled!");
+        // Auto-subscribe to push after permission granted
+        const subscribed = await subscribe();
+        if (subscribed) {
+          toast.success("Push notifications activated!");
+        }
       } else if (result === "denied") {
         toast.error("Notifications were denied. Please enable them in your browser settings.");
       }
@@ -85,6 +58,22 @@ const Notifications = () => {
       toast.error("Failed to send test notification");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSettingsChange = async (key: string, value: boolean | string) => {
+    setSavingSettings(true);
+    try {
+      const success = await updateSettings({ [key]: value });
+      if (success) {
+        toast.success("Settings saved");
+      } else {
+        toast.error("Failed to save settings");
+      }
+    } catch (error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -160,12 +149,30 @@ const Notifications = () => {
               </div>
               <div>
                 <CardTitle>Notifications Enabled</CardTitle>
-                <CardDescription>You'll receive notifications from PagePace</CardDescription>
+                <CardDescription>
+                  {isSubscribed 
+                    ? "Push notifications are active - you'll receive reminders even when the app is closed"
+                    : "Browser notifications enabled. Set up push notifications below for reminders when app is closed."}
+                </CardDescription>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {!isSubscribed && (
+            <Button 
+              onClick={subscribe} 
+              variant="default"
+              disabled={isSubscriptionLoading}
+              className="w-full"
+            >
+              {isSubscriptionLoading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Setting up...</>
+              ) : (
+                <><Bell className="h-4 w-4 mr-2" /> Enable Push Notifications</>
+              )}
+            </Button>
+          )}
           <Button 
             onClick={handleTestNotification} 
             variant="outline"
@@ -191,29 +198,31 @@ const Notifications = () => {
 
         {renderPermissionCard()}
 
-        {isGranted && (
+        {isGranted && isSubscribed && (
           <>
             <Card>
               <CardHeader>
                 <CardTitle>Daily Reading Reminder</CardTitle>
-                <CardDescription>Get a daily reminder to read at your chosen time</CardDescription>
+                <CardDescription>Get a daily reminder to read at your chosen time (works even when app is closed!)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="daily-reminder" className="text-base">Enable daily reminder</Label>
                   <Switch
                     id="daily-reminder"
-                    checked={settings.dailyReminder}
-                    onCheckedChange={(checked) => saveSettings({ ...settings, dailyReminder: checked })}
+                    checked={settings.dailyReminderEnabled}
+                    onCheckedChange={(checked) => handleSettingsChange("dailyReminderEnabled", checked)}
+                    disabled={savingSettings}
                   />
                 </div>
-                {settings.dailyReminder && (
+                {settings.dailyReminderEnabled && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="reminder-time">Quick select</Label>
                       <Select 
                         value={settings.reminderTime} 
-                        onValueChange={(value) => saveSettings({ ...settings, reminderTime: value })}
+                        onValueChange={(value) => handleSettingsChange("reminderTime", value)}
+                        disabled={savingSettings}
                       >
                         <SelectTrigger id="reminder-time">
                           <SelectValue />
@@ -233,10 +242,17 @@ const Notifications = () => {
                         id="custom-time"
                         type="time"
                         value={settings.reminderTime}
-                        onChange={(e) => saveSettings({ ...settings, reminderTime: e.target.value })}
+                        onChange={(e) => handleSettingsChange("reminderTime", e.target.value)}
                         className="w-full"
+                        disabled={savingSettings}
                       />
                     </div>
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Note:</strong> Reminder times are in UTC. The server checks every minute for users whose reminder time has arrived.
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 )}
               </CardContent>
@@ -256,7 +272,8 @@ const Notifications = () => {
                   <Switch
                     id="goal-notifs"
                     checked={settings.goalNotifications}
-                    onCheckedChange={(checked) => saveSettings({ ...settings, goalNotifications: checked })}
+                    onCheckedChange={(checked) => handleSettingsChange("goalNotifications", checked)}
+                    disabled={savingSettings}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -267,7 +284,8 @@ const Notifications = () => {
                   <Switch
                     id="streak-notifs"
                     checked={settings.streakNotifications}
-                    onCheckedChange={(checked) => saveSettings({ ...settings, streakNotifications: checked })}
+                    onCheckedChange={(checked) => handleSettingsChange("streakNotifications", checked)}
+                    disabled={savingSettings}
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -278,20 +296,21 @@ const Notifications = () => {
                   <Switch
                     id="completion-notifs"
                     checked={settings.completionNotifications}
-                    onCheckedChange={(checked) => saveSettings({ ...settings, completionNotifications: checked })}
+                    onCheckedChange={(checked) => handleSettingsChange("completionNotifications", checked)}
+                    disabled={savingSettings}
                   />
                 </div>
               </CardContent>
             </Card>
-
-            <Alert>
-              <Smartphone className="h-4 w-4" />
-              <AlertDescription>
-                <strong>💡 Tip:</strong> Visit the <a href="/setup" className="text-primary underline font-medium">App Setup</a> page for a step-by-step guide to install PagePace and configure notifications properly.
-              </AlertDescription>
-            </Alert>
           </>
         )}
+
+        <Alert>
+          <Smartphone className="h-4 w-4" />
+          <AlertDescription>
+            <strong>💡 Tip:</strong> Visit the <a href="/setup" className="text-primary underline font-medium">App Setup</a> page for a step-by-step guide to install PagePace and configure notifications properly.
+          </AlertDescription>
+        </Alert>
       </main>
     </div>
   );
