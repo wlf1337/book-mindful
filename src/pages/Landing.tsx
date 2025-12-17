@@ -47,7 +47,7 @@ const Landing = () => {
             Read more. <span className="text-primary">Distraction-free.</span>
           </h1>
           <p className="text-lg text-muted-foreground mb-8">
-            Track your reading, build lasting habits, and rediscover the joy of books.
+            Track your reading, build lasting habits, and grow your personal library.
           </p>
           <Button asChild size="lg" className="px-8">
             <Link to="/auth">Start Reading</Link>
