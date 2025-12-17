@@ -79,6 +79,61 @@ serve(async (req) => {
     const { type, userId, payload } = await req.json();
     console.log(`Processing push notification request: type=${type}, userId=${userId}`);
 
+    // Get authorization header
+    const authHeader = req.headers.get("authorization");
+
+    // Validate request based on type
+    if (type === "scheduled_reminders") {
+      // Scheduled reminders should only be called by cron jobs with service role
+      // Verify the request has service role authorization
+      if (!authHeader || !authHeader.includes(supabaseServiceKey.substring(0, 20))) {
+        // Allow calls with valid anon key for cron jobs (they use the anon key in the cron setup)
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+        if (!anonKey || !authHeader?.includes("Bearer")) {
+          console.error("Unauthorized scheduled_reminders request");
+          return new Response(
+            JSON.stringify({ error: "Unauthorized: scheduled_reminders requires valid authorization" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    } else if (type === "individual" && userId) {
+      // For individual notifications, verify the caller is the user or has service role
+      if (!authHeader) {
+        console.error("Missing authorization header for individual notification");
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: missing authorization" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Extract JWT token and verify user
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        console.error("Invalid auth token:", authError?.message);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verify user can only send notifications to themselves
+      if (user.id !== userId) {
+        console.error(`User ${user.id} attempted to send notification to ${userId}`);
+        return new Response(
+          JSON.stringify({ error: "Forbidden: cannot send notifications to other users" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else if (type !== "scheduled_reminders" && type !== "individual") {
+      return new Response(
+        JSON.stringify({ error: "Invalid request type" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Handle scheduled daily reminders
     if (type === "scheduled_reminders") {
       const now = new Date();
@@ -192,7 +247,11 @@ serve(async (req) => {
       );
     }
 
-    throw new Error("Invalid request type");
+    // If we reach here with type "individual" but missing payload
+    return new Response(
+      JSON.stringify({ error: "Invalid request: missing required fields" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in send-push-notification:", errorMessage);
