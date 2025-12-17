@@ -7,19 +7,19 @@ const mockBooks = [
   {
     title: "Atomic Habits",
     author: "James Clear",
-    cover: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=400&fit=crop",
+    cover: "https://covers.openlibrary.org/b/isbn/9780735211292-L.jpg",
     progress: 67,
   },
   {
-    title: "Deep Work",
-    author: "Cal Newport",
-    cover: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&h=400&fit=crop",
+    title: "1984",
+    author: "George Orwell",
+    cover: "https://covers.openlibrary.org/b/isbn/9780451524935-L.jpg",
     progress: 23,
   },
   {
-    title: "The Psychology of Money",
-    author: "Morgan Housel",
-    cover: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=300&h=400&fit=crop",
+    title: "Sapiens",
+    author: "Yuval Noah Harari",
+    cover: "https://covers.openlibrary.org/b/isbn/9780062316097-L.jpg",
     progress: 100,
   },
 ];
