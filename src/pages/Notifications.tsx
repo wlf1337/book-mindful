@@ -287,8 +287,7 @@ const Notifications = () => {
             <Alert>
               <Smartphone className="h-4 w-4" />
               <AlertDescription>
-                <strong>💡 Tip:</strong> To receive notifications when the app is closed, make sure you've installed PagePace to your home screen. 
-                On iOS, tap Share → Add to Home Screen. On Android, look for "Install App" or "Add to Home Screen" in your browser menu.
+                <strong>💡 Tip:</strong> Visit the <a href="/setup" className="text-primary underline font-medium">App Setup</a> page for a step-by-step guide to install PagePace and configure notifications properly.
               </AlertDescription>
             </Alert>
           </>

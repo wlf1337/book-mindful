@@ -490,7 +490,8 @@ All tables have RLS enabled. Here are the policies:
 | `/read/:id` | ReadingSession | Yes | Reading timer with pause/resume |
 | `/goals` | Goals | Yes | Set and track reading goals |
 | `/notes` | Notes | Yes | View all notes across books |
-| `/notifications` | Notifications | Yes | PWA notification settings |
+| `/setup` | AppSetup | Yes | PWA installation & notification setup guide |
+| `/notifications` | Notifications | Yes | Notification preference settings |
 | `/admin` | Admin | Yes + Admin | AI prompt management |
 | `*` | NotFound | No | 404 page |
 

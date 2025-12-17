@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Home, Library, Target, StickyNote, Bell, LogOut, Shield } from "lucide-react";
+import { BookOpen, Home, Library, Target, StickyNote, Bell, LogOut, Shield, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -48,7 +48,7 @@ export const Navbar = () => {
     { to: "/library", icon: Library, label: "Library" },
     { to: "/goals", icon: Target, label: "Goals" },
     { to: "/notes", icon: StickyNote, label: "Notes" },
-    { to: "/notifications", icon: Bell, label: "Notifications" },
+    { to: "/setup", icon: Settings, label: "Setup" },
   ];
 
   return (
